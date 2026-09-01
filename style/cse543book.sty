@@ -1,0 +1,230 @@
+% CSE543 textbook style -- centralized, portable XeLaTeX typography.
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesFile{cse543book.sty}[2026/08/31 v1.0 CSE543 book design]
+
+\RequirePackage{fontspec}
+\RequirePackage{xeCJK}
+\RequirePackage{unicode-math}
+\defaultfontfeatures{Ligatures=TeX,Scale=MatchLowercase}
+\setmainfont{LibertinusSerif-Regular.otf}[
+  BoldFont=LibertinusSerif-Bold.otf,
+  ItalicFont=LibertinusSerif-Italic.otf,
+  BoldItalicFont=LibertinusSerif-BoldItalic.otf]
+\setsansfont{LibertinusSans-Regular.otf}[BoldFont=LibertinusSans-Bold.otf]
+\setmonofont{Latin Modern Mono}[Scale=0.89]
+\setmathfont{LibertinusMath-Regular.otf}
+\IfFontExistsTF{Noto Serif CJK TC}{
+  \setCJKmainfont{Noto Serif CJK TC}[BoldFont=Noto Serif CJK TC Bold,
+    ItalicFont=Noto Serif CJK TC,BoldItalicFont=Noto Serif CJK TC Bold]
+}{
+  \PackageWarning{cse543book}{Noto Serif CJK TC unavailable; using TeX Live FandolSong}
+  \setCJKmainfont{FandolSong-Regular}[BoldFont=FandolSong-Bold]
+}
+\IfFontExistsTF{Noto Sans CJK TC}{
+  \setCJKsansfont{Noto Sans CJK TC}[BoldFont=Noto Sans CJK TC Bold]
+  \setCJKmonofont{Noto Sans CJK TC}
+}{
+  \PackageWarning{cse543book}{Noto Sans CJK TC unavailable; using TeX Live FandolHei}
+  \setCJKsansfont{FandolHei-Regular}[BoldFont=FandolHei-Bold]
+}
+\xeCJKsetup{CJKmath=true,CheckSingle=true,PunctStyle=kaiming}
+
+\RequirePackage[a4paper,left=27mm,right=27mm,top=28mm,bottom=30mm,
+  headheight=15pt,headsep=8mm,footskip=13mm,heightrounded]{geometry}
+\RequirePackage{microtype}
+\RequirePackage{setspace}
+\RequirePackage{needspace}
+\setstretch{1.13}
+\setlength{\parindent}{2em}
+\setlength{\parskip}{0pt plus .25pt}
+\clubpenalty=10000
+\widowpenalty=10000
+\displaywidowpenalty=10000
+\brokenpenalty=8000
+\predisplaypenalty=150
+\postdisplaypenalty=150
+\setlength{\emergencystretch}{1.5em}
+
+\RequirePackage{xcolor}
+% Seaborn ``colorblind'' palette.  Hue is never the only carrier of meaning:
+% diagrams must also differ by line style, marker, label, or boundary weight.
+% Very light backgrounds remain nearly neutral so grayscale printing, display
+% inversion, and warm night filters preserve figure hierarchy.
+\definecolor{CSEink}{HTML}{26333D}
+\definecolor{CSEblue}{HTML}{0173B2}
+\definecolor{CSEorange}{HTML}{DE8F05}
+\definecolor{CSEgreen}{HTML}{029E73}
+\definecolor{CSEvermillion}{HTML}{D55E00}
+\definecolor{CSEpurple}{HTML}{CC78BC}
+\definecolor{CSEgray}{HTML}{767676}
+\definecolor{CSEpaper}{HTML}{F4F4F2}
+\definecolor{CSEwarm}{HTML}{F7F3EC}
+\definecolor{CSEcool}{HTML}{EFF4F5}
+% Backward-compatible semantic name: warnings/rejections use vermillion and
+% a dashed or otherwise redundant visual encoding.
+\colorlet{CSErust}{CSEvermillion}
+\color{CSEink}
+
+\RequirePackage{titlesec}
+\titleformat{\chapter}[display]
+  {\sffamily\bfseries\color{CSEink}}
+  {\filleft\Large 第\,\thechapter\,章}
+  {1.2ex}{\titlerule[0.6pt]\vspace{1.3ex}\Huge}
+\titlespacing*{\chapter}{0pt}{-8pt}{32pt}
+\titleformat{\section}{\sffamily\Large\bfseries\color{CSEblue}}
+  {\thesection}{0.75em}{}
+\titlespacing*{\section}{0pt}{3.2ex plus .8ex minus .2ex}{1.4ex}
+\titleformat{\subsection}{\sffamily\large\bfseries\color{CSEink}}
+  {\thesubsection}{0.7em}{}
+\titlespacing*{\subsection}{0pt}{2.5ex plus .6ex minus .2ex}{1ex}
+
+\RequirePackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\sffamily CSE543 課程伴讀與參考教材}
+\fancyhead[R]{\small\sffamily\thepage}
+\renewcommand{\headrulewidth}{0.35pt}
+\renewcommand{\chaptermark}[1]{\markboth{\thechapter\quad #1}{}}
+\fancypagestyle{plain}{
+  \fancyhf{}\fancyfoot[C]{\small\sffamily\thepage}
+  \renewcommand{\headrulewidth}{0pt}}
+
+\RequirePackage{amsmath}
+\RequirePackage{amsthm}
+\RequirePackage{aliascnt}
+\renewcommand{\proofname}{證明}
+\newtheoremstyle{cseplain}{.8\baselineskip}{.8\baselineskip}
+  {\itshape}{} {\sffamily\bfseries\color{CSEblue}}{.}{.55em}{}
+\newtheoremstyle{csedef}{.8\baselineskip}{.8\baselineskip}
+  {}{} {\sffamily\bfseries\color{CSEgreen}}{.}{.55em}{}
+\theoremstyle{cseplain}
+\newtheorem{theorem}{定理}[chapter]
+\newtheorem{lemma}[theorem]{引理}
+\newtheorem{proposition}[theorem]{命題}
+\newtheorem{corollary}[theorem]{推論}
+\theoremstyle{csedef}
+\newtheorem{definition}[theorem]{定義}
+\newtheorem{example}[theorem]{例題}
+% Keep exercises in the shared chapter sequence while preserving their own
+% cross-reference type.  Without aliascnt, cleveref calls them "定理".
+\newaliascnt{exercise}{theorem}
+\newtheorem{exercise}[exercise]{小題}
+\aliascntresetthe{exercise}
+\newtheorem{remark}[theorem]{備註}
+
+\RequirePackage[most]{tcolorbox}
+\tcbset{enhanced,breakable,boxrule=.45pt,arc=1pt,
+  left=8pt,right=8pt,top=6pt,bottom=6pt,before skip=9pt,after skip=9pt,
+  fonttitle=\sffamily\bfseries}
+\newtcolorbox{coreintuition}[1][]{colback=CSEcool,colframe=CSEblue,
+  borderline west={2pt}{0pt}{CSEblue},title={核心直覺},breakable=false,#1}
+\newtcolorbox{misconception}[1][]{colback=CSEwarm,colframe=CSErust,
+  borderline west={2pt}{0pt}{CSErust},title={常見誤解},#1}
+\newtcolorbox{feynmancheck}[1][]{colback=CSEpaper,colframe=CSEgreen,
+  borderline west={2pt}{0pt}{CSEgreen},title={費曼驗收},#1}
+
+% Lightweight learning aids: deliberately not boxed, so the page retains a
+% textbook rhythm instead of becoming a dashboard of competing panels.
+\newcommand{\chapteraudience}[1]{%
+  \par\smallskip\noindent
+  {\sffamily\bfseries\color{CSEgreen}先備與讀法。}\,#1\par\medskip}
+\newenvironment{chaptermastery}
+  {\par\smallskip\noindent
+   {\sffamily\bfseries\color{CSEblue}學完本章，你應能獨立：}\par
+   \begin{itemize}[leftmargin=1.6em,itemsep=.05ex,topsep=.25ex,parsep=0pt]}
+  {\end{itemize}\medskip}
+\newcommand{\exlevel}[1]{%
+  {\sffamily\bfseries\color{CSEblue}[#1]}\enspace}
+\newcommand{\bilingualterm}[2]{#1（\textit{#2}）}
+\newenvironment{chapterrecap}
+  {\par\medskip\noindent{\sffamily\bfseries\color{CSEgreen}章末回顧}\par
+   \begin{itemize}[leftmargin=1.6em,itemsep=.15ex,topsep=.35ex]}
+  {\end{itemize}\medskip}
+
+\RequirePackage{enumitem}
+\setlist{itemsep=.25ex,topsep=.55ex,parsep=0pt,leftmargin=*}
+\setlist[enumerate,1]{label=\arabic*.,ref=\arabic*}
+\RequirePackage{booktabs}
+\RequirePackage{tabularx}
+\RequirePackage{longtable}
+\RequirePackage{array}
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+\renewcommand{\arraystretch}{1.18}
+
+\RequirePackage{graphicx}
+\RequirePackage{caption}
+\RequirePackage{subcaption}
+\renewcommand{\figurename}{圖}
+\renewcommand{\tablename}{表}
+\renewcommand{\contentsname}{目錄}
+\renewcommand{\listfigurename}{圖目錄}
+\renewcommand{\listtablename}{表目錄}
+\renewcommand{\bibname}{參考文獻}
+\captionsetup{font=small,labelfont={sf,bf},labelsep=quad}
+\RequirePackage{tikz}
+\usetikzlibrary{arrows.meta,calc,positioning,patterns,shapes.geometric,fit}
+\RequirePackage{pgfplots}
+\pgfplotsset{compat=1.18,
+  every axis/.append style={font=\small,line width=.6pt,tick style={line width=.5pt},
+    label style={font=\small},legend style={font=\footnotesize,draw=none,fill=none}},
+  cse series 1/.style={CSEblue,solid,mark=*},
+  cse series 2/.style={CSEorange,densely dashed,mark=square*},
+  cse series 3/.style={CSEgreen,dashdotted,mark=triangle*},
+  cse series 4/.style={CSEvermillion,densely dotted,mark=diamond*}}
+\tikzset{cse arrow/.style={-{Latex[length=2.2mm]},line width=.7pt,CSEink},
+  cse node/.style={draw=CSEblue,rounded corners=1pt,inner sep=5pt,
+    align=center,font=\small,fill=white},
+  cse state/.style={circle,draw=CSEblue,line width=.75pt,minimum size=14mm,
+    align=center,font=\footnotesize,fill=white},
+  cse chosen/.style={draw=CSEgreen,line width=1.15pt,fill=CSEcool},
+  cse rejected/.style={draw=CSErust,densely dashed,line width=.7pt,fill=white},
+  cse dashed/.style={dash pattern=on 4pt off 2pt,line width=.7pt}}
+\setlength{\textfloatsep}{16pt plus 3pt minus 3pt}
+\setlength{\floatsep}{13pt plus 3pt minus 2pt}
+\renewcommand{\topfraction}{.82}
+\renewcommand{\bottomfraction}{.7}
+\renewcommand{\textfraction}{.12}
+\renewcommand{\floatpagefraction}{.72}
+
+\RequirePackage{csquotes}
+\RequirePackage{hyperref}
+% aliascnt preserves the printed shared sequence; the explicit H-counter keeps
+% PDF destinations unique when the exercise number restarts in each chapter.
+\newcommand*{\theHexercise}{\theHchapter.\arabic{exercise}}
+\hypersetup{unicode=true,colorlinks=true,linkcolor=CSEblue,
+  citecolor=CSEgreen,urlcolor=CSErust,pdfborder={0 0 0},
+  pdftitle={CSE543 高等通訊與資安演算法：費曼式課程伴讀與參考教材},
+  pdfauthor={Prepared and maintained by YHL}}
+\RequirePackage{bookmark}
+\RequirePackage[capitalise,noabbrev]{cleveref}
+\newcommand{\crefpairconjunction}{、}
+\newcommand{\crefmiddleconjunction}{、}
+\newcommand{\creflastconjunction}{、}
+\crefname{chapter}{章}{章}
+\crefname{section}{節}{節}
+\crefname{figure}{圖}{圖}
+\crefname{table}{表}{表}
+\crefname{equation}{式}{式}
+\crefname{theorem}{定理}{定理}
+\crefname{definition}{定義}{定義}
+\crefname{example}{例題}{例題}
+\crefname{exercise}{小題}{小題}
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\Prb}{\Pr}
+\newcommand{\OPT}{\mathrm{OPT}}
+\newcommand{\poly}{\operatorname{poly}}
+\newcommand{\Adv}{\operatorname{Adv}}
+\newcommand{\bits}{\{0,1\}}
+\newcommand{\chapterabstract}[1]{%
+  \par\smallskip
+  \begingroup\small
+  \noindent{\sffamily\bfseries\color{CSEblue}本章摘要。}\,#1\par
+  \endgroup\medskip}
+
+\raggedbottom
+
+\endinput

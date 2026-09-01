@@ -1,0 +1,34 @@
+# XeLaTeX / latexmk intermediate files
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.lof
+*.log
+*.lot
+*.nav
+*.out
+*.run.xml
+*.snm
+*.synctex.gz
+*.toc
+*.vrb
+*.xdv
+
+# Editor and operating-system files
+*~
+*.swp
+*.swo
+.DS_Store
+
+# Temporary maintainer planning notes
+CORE_EXPANSION_PLAN.md
+APPENDIX_REWRITE_PLAN.md
+
+# The syllabus is a local source of truth and must not be distributed.
+sec-algo.pdf
+
+# Keep the compiled textbook under version control.
+!CSE543_feynman_preview.pdf

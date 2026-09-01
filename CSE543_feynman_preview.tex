@@ -3489,13 +3489,14 @@ Las Vegas 演算法可能具有 polynomial expected running time，仍存在極�
 
 \chapter{整合方法：從問題建模到可辯護的結論}
 \label{ch:synthesis}
-\chapterabstract{真實研究問題通常同時需要模型、界、演算法與實驗；單一漂亮數字無法取代其中任何一層。本章追蹤一個安全監控部署案例，從自然語言需求開始，依序形成 optimization model、bound interval、可行解、保證與多 seed 實驗，最後把每一份證據翻回它真正容許的結論。}
+\chapterabstract{真實研究問題通常同時需要模型、界、演算法與實驗；單一漂亮數字無法取代其中任何一層。本章追蹤一個安全監控部署案例，從自然語言需求開始，依序形成 optimization model、bound interval、可行解、保證與多 seed 實驗，再追問 observation 要付多少代價、decision 是否改變未來資料，以及有限 sample 能否代表 deployment。最後把每一份證據翻回它真正容許的結論。}
 \chapteraudience{本章假設已讀完五項核心，用來練習選方法與限制主張。不要尋找唯一最佳演算法；要辨認每一種證據回答了哪個問題。}
 \begin{chaptermastery}
 \item 把自然語言需求接成 model、feasible value、bound、guarantee、experiment 與 claim 的證據鏈。
 \item 由 primal／dual interval 計算並正確解讀 optimality gap。
 \item 為 randomized heuristic 指定 instances、budgets、seeds、estimand、timeouts 與 aggregation rule。
 \item 找出把 feasibility、empirical performance 或 timeout 誇大成 optimality 的過度主張。
+\item 分開 reproducibility、generalization、distribution shift 與 endogeneity，指出 evidence 能推廣到哪個 population。
 \end{chaptermastery}
 
 \section{一個數字不等於一項主張：為何需要證據鏈}
@@ -3654,10 +3655,10 @@ Logical & 結果是否正確、可行？ & invariant、certificate、proof & 輸
 Computation／Structure & 算多少；難度來自哪個結構？ & time、space、work、span、$T(n,k)$ & 單機 sequential model；只以 $n$ 描述難度 \\
 Quality & 解離 OPT 或需求多遠？ & gap、approximation、competitive ratio & benchmark 和 ALG 看見相同資訊 \\
 Stochastic & 隨機性帶來多少風險？ & expectation、variance、tail、failure probability & probability space、independence、stationarity \\
-Information & 誰在何時知道什麼？ & online prefix、local view、query/sample access & future、global state 或參數免費可得 \\
+Information & 誰在何時知道什麼？ & online prefix、local view、query/sample count & observation 可免費取得 \\
 Communication & 為取得資訊必須搬多少？ & messages、bits、rounds、staleness & data movement 與 synchronization 免費 \\
-Temporal／Dynamic & 世界是否在計算時改變？ & update/query time、adaptation delay、drift & input static；舊 state 仍代表現在 \\
-System／Empirical & 理論到了平台仍成立嗎？ & wall-clock、energy、scaling、reproducibility & workload、hardware、timeout 與 tuning 可比 \\
+Temporal／Dynamic & 世界是否在計算時改變？ & update/query time、adaptation delay、drift & input static；環境不受 decision 影響 \\
+System／Empirical & 證據到了部署仍成立嗎？ & wall-clock、scaling、generalization、reproducibility & sample、target 與 deployment populations 相同 \\
 \bottomrule
 \end{tabularx}
 \label{tab:algorithmic-dimensions}
@@ -3671,14 +3672,38 @@ Structural dimension 特別提醒：$T(n)$ 不是描述 hardness 的唯一方式
 
 Temporal dimension 也不等同 online。Online algorithm 面對尚未到達的 future；dynamic algorithm 可能曾完整知道 $G_0$，但世界後來變成 $G_1,G_2,\ldots$。前者問在 prefix information 下如何決策，後者還會問一次 update 後多久恢復可用答案。兩者與 information、communication 維度的共同主線在附錄~\ref{app:without-omniscience}展開。
 
+\subsection{Feedback／endogeneity：演算法不是世界的旁觀者}
+
+「看見執行結果」只是 outcome observation；「依結果改下一步」是 adaptive update；更深一層的 Feedback／endogeneity（回饋／內生性）是：decision 本身改變了下一輪 state、observation、workload 或 adversary strategy。這不只是世界隨時間改變，而是演算法成為變化的原因之一。
+
+以 routing 為例。若 Route A 在沒有流量時 latency 是 4，Route B 是 6，greedy controller 會把流量送往 A；但若 A 承載全部流量後 latency 升成 8，下一輪又會改送 B。原本量到的 edge weight 不是固定 parameter；decision 改變了下一次要最佳化的 instance。附錄~\ref{app:without-omniscience}會把這個兩狀態循環完整畫出。
+
+正式地，令 $s_t$ 是時間 $t$ 的 environment state，$y_t$ 是 observation，$a_t$ 是 algorithm decision，$\varepsilon_t$ 是 measurement noise，$\xi_t$ 是 algorithm 無法控制的外部擾動。令 $\mathcal O$ 是 observation map，$\pi$ 是依歷史 $h_t=(y_0,a_0,\ldots,y_t)$ 選 action 的 policy，$F$ 是 state transition；closed-loop model（閉環模型）可寫成
+\begin{equation}
+ \label{eq:closed-loop-model}
+ y_t=\mathcal O(s_t)+\varepsilon_t,
+ \qquad
+ a_t=\pi(h_t),
+ \qquad
+ s_{t+1}=F(s_t,a_t,\xi_t).
+\end{equation}
+若 $F$ 不依賴 $a_t$，環境變化對演算法而言是 exogenous（外生的）；若 $a_t$ 會改變下一個 state 或 data-generating process，便存在 endogeneity。Staleness 問 observation 落後現在多久；endogeneity 問「現在」是否被先前 action 改寫，兩者可以同時存在。
+
+\begin{coreintuition}
+Feedback 不只是把結果送回程式。真正需要稽核的是：部署 decision 後，下一批資料是否仍由原先假設的 process 產生？若答案是否定的，固定 dataset 上的 objective、offline benchmark 與 empirical ranking 都可能不再回答 closed-loop 問題。
+\end{coreintuition}
+
+Information 也有取得成本。Observation itself is a resource：query complexity（查詢複雜度）計算演算法對指定 oracle 或昂貴 evaluator 的呼叫次數。若方法 A 做 $10^6$ 次 cheap operations、只跑 50 次十分鐘 simulation，而方法 B 做 $10^4$ 次 operations、卻跑 5000 次 simulation，只報 ordinary operation count 會顛倒主要成本。因此 resource budget 應同時明示 time、space、communication 與 query／sample count；這不需要新增第九維，而是把 information acquisition 放回成本模型。
+
 \begin{definition}[可稽核的 algorithmic claim]
 一項完整演算法主張至少要讓讀者定位下列七個欄位：
 \[
  \begin{aligned}
  \text{Claim}=(&\text{problem model},\ \text{information model},\
  \ \text{computation model},\\
- &\text{environment/timing model},\ \text{resource budget},\
- \ \text{guarantee},\ \text{failure/adversary model}).
+ &\text{environment/timing/feedback model},\\
+ &\text{resource budget},\ \text{guarantee},\
+ \ \text{failure/adversary model}).
  \end{aligned}
 \]
 欄位不一定各有一條 theorem，但不能靠讀者猜測。Security 不是第九種成本；它透過 failure/adversary model 改變哪些 observations、states 與 transitions 仍可信。
@@ -3765,6 +3790,37 @@ Theoretical guarantee（理論保證）必須明示量詞，例如「對每個�
 
 \subsection{先定義 empirical estimand：究竟想平均什麼？}
 Empirical estimand（實證估計目標）是實驗真正想描述的量。對固定 instance $I$ 與 budget $\tau$，若 seed $S$ 依事先指定的分布抽樣，則 $Z_A(I;S,\tau)$ 是 random variable；其中位數、失敗率或第 90 百分位數都是不同 estimands。若研究問題改成「未來從某個 instance population 抽到新題目時的表現」，隨機性還包括 instance $I$；此時資料集的生成或抽樣方式也必須定義。沒有先說 estimand，「平均 852」並不知道平均了 seeds、instances，還是兩者混在一起。
+
+\subsection{Generalization／distribution shift：這批 evidence 能走多遠？}
+
+Reproducibility（可重現性）問別人能否在相同 protocol 下重現觀察；generalization（泛化）問有限 observed sample 支持哪個未觀察 population 的主張。令 $I_1,\ldots,I_m$ 是實驗 instances，$\mathcal D_{\mathrm{target}}$ 是研究真正想描述的 target population（目標母體），$\mathcal D_{\mathrm{deploy}}$ 是系統部署後遇到的 workload distribution。若 $Q(A,I)$ 是方法 $A$ 在 instance $I$ 的預先定義品質量，一句 population claim 可能是
+\begin{equation}
+ \label{eq:population-claim}
+ \E_{I\sim\mathcal D_{\mathrm{target}}}[Q(A,I)]
+ >
+ \E_{I\sim\mathcal D_{\mathrm{target}}}[Q(B,I)].
+\end{equation}
+有限樣本的平均不會自動證明\cref{eq:population-claim}。至少要交代 $I_1,\ldots,I_m$ 如何取得、哪些 instances 屬於 $\mathcal D_{\mathrm{target}}$，以及 sampling、selection、tuning 與 missing cases 是否讓資料偏向特定區域。
+
+若 $\mathcal D_{\mathrm{deploy}}\ne\mathcal D_{\mathrm{target}}$，便有 distribution shift（分布移轉）：原本的 population claim 即使估計正確，也可能沒有對準部署世界。更進一步，\cref{eq:closed-loop-model}中的 action 若改變 workload，則 shift 可能是演算法自己造成的 endogeneity，而非部署前就存在的外部差異。
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[node distance=12mm and 18mm,font=\small]
+\node[cse node] (sample) {Observed sample\\$I_1,\ldots,I_m$};
+\node[cse node,right=of sample] (target) {Target population\\$\mathcal D_{\mathrm{target}}$};
+\node[cse node,right=of target] (deploy) {Deployment at $t$\\$\mathcal D_{\mathrm{deploy}}^{(t)}$};
+\node[cse node,below=of deploy] (next) {Deployment at $t+1$\\$\mathcal D_{\mathrm{deploy}}^{(t+1)}$};
+\draw[cse dashed,->] (sample)--node[above,font=\scriptsize]{infer}(target);
+\draw[cse dashed,->] (target)--node[above,font=\scriptsize]{transport}(deploy);
+\draw[cse arrow,CSEvermillion] (deploy)--node[right,font=\scriptsize,align=left]
+  {decision $a_t$ may\\shift workload}(next);
+\end{tikzpicture}
+\caption{從 sample 到 deployment 的每一支箭頭都是主張。最後以時間展開 feedback：decision 可能使下一輪 workload distribution 改變；可重現同一批實驗，仍不等於結果能泛化到這個新分布。}
+\label{fig:generalization-loop}
+\end{figure}
+
+讀\cref{fig:generalization-loop}時固定追問三件事：instances 如何抽取或蒐集？Target population 精確包含哪些 workload？Deployment distribution 改變後，原 claim 還剩多少？這不是要求每篇 systems paper 證明 learning-theory bound，而是禁止把「在這批 benchmark 上看見」無聲地改寫成「在未來部署通常成立」。
 
 \subsection{Evaluation protocol：instance 是題目，seed 是重複測量}
 若演算法有隨機性，對每個實例 $I$ 執行多個 seeds $s$，記錄 $A(I,s)$。Instance difficulty（實例難度）與 seed variability（種子變異）是不同層次；先把所有數字混成一個平均會讓大量簡單實例淹沒少數困難實例。較清楚的報告至少包含：
@@ -3859,6 +3915,10 @@ $D_s=M(I,s)-H(I)$      & 2   & 9   & $-15$ & 15 & 6 \\
 使用\cref{tab:experiment-protocol}設計安全監控佈署實驗。至少列出三類 instances、兩種 budget 定義、seed policy、timeout 記錄方式與一個 paired comparison；逐欄說明它阻止哪種錯誤結論。
 \end{exercise}
 \begin{exercise}
+\exlevel{證據邊界}
+某 routing heuristic 在一百個離線 traffic traces 上勝過 baseline，作者因此宣稱「部署後平均 latency 較低」。分別寫出 observed sample、target population 與 deployment distribution；列出一個 sampling bias、一個外部 distribution shift，以及一個由 routing decision 自己造成的 endogenous shift。最後把原句改寫成目前 evidence 真正支持的版本。
+\end{exercise}
+\begin{exercise}
 \exlevel{進階推導}
 兩個最小化演算法在三個 instances、四個 seeds 上各有結果。自行建立一組包含一個 timeout 的資料，計算每個 instance 的 median 與 paired differences。比較「先跨 seed 聚合再跨 instance」和「把全部 12 筆直接平均」可能得到的不同結論。
 \end{exercise}
@@ -3877,13 +3937,15 @@ $D_s=M(I,s)-H(I)$      & 2   & 9   & $-15$ & 15 & 6 \\
 
 \section{費曼驗收：把一張結果圖拆回完整證據鏈}
 \begin{feynmancheck}
-先不看公式，重畫\cref{fig:monitor-deployment}並說明每一類線與數字如何變成 variable、constraint 與 objective。接著重畫\cref{fig:bound-interval}，區分 actual loss 與 certificate gap；再用\cref{tab:paired-runs}說明為何 median、win rate 與 tail observation 回答不同問題。最後選一篇演算法論文的單一實驗圖，沿\cref{fig:evidence-chain}反向追查 model、algorithm、quality guarantee 與 protocol，並指出還缺哪一份證據才能支持作者最強的句子。
+先不看公式，重畫\cref{fig:monitor-deployment}並說明每一類線與數字如何變成 variable、constraint 與 objective。接著重畫\cref{fig:bound-interval}，區分 actual loss 與 certificate gap；再用\cref{tab:paired-runs}說明為何 median、win rate 與 tail observation 回答不同問題。最後選一篇演算法論文的單一實驗圖，沿\cref{fig:evidence-chain}反向追查 model、algorithm、quality guarantee 與 protocol，再畫\cref{fig:generalization-loop}追問 sample 支持哪個 target population、deployment 是否 shift，以及 decision 會不會改變下一輪資料。指出還缺哪一份證據才能支持作者最強的句子。
 \end{feynmancheck}
 \begin{chapterrecap}
 \item Model validity、correctness、complexity、quality guarantee 與 empirical evidence 互補但不可互換。
 \item Bound interval 表示尚未排除的可能；certificate gap 不是 actual loss，也不是 $\OPT$ 的估計值。
 \item Feasible、non-worsening post-processing 能保留近似保證；回傳 final state 則未必可以。
 \item 先定義 empirical estimand，再分層處理 instances、seeds、budget、timeout 與 tuning leakage。
+\item Reproducibility 只保證同一 protocol 可重做；generalization 還要連接 observed sample、target population 與 deployment distribution。
+\item Feedback／endogeneity 使 decision 成為下一輪資料的原因之一；resource budget 也應計入昂貴 query／sample access。
 \end{chapterrecap}
 
 \appendix
@@ -5185,7 +5247,7 @@ Coverage 高不等於 bug 多，更不等於安全。Fuzzer 沒找到漏洞，�
 \chapter{Algorithms without Omniscience：從完整資訊到有限觀察}
 \label{app:without-omniscience}
 \noindent\textbf{範圍聲明：}本章為課綱外 enrichment。它不把 online、streaming、robust 與 dynamic algorithms 壓成四門迷你課，而是建立一個共同的 information model（資訊模型）：演算法由誰取得什麼資訊、何時取得、準確到什麼程度，又為取得資訊付出多少代價。
-\chapterabstract{教科書常從完整的圖 $G$、權重 $w$、限制 $C$ 與目標 $f$ 開始；真實研究卻必須先問這些物件從哪裡來。本章沿著 reality、observation、model、algorithm、decision 與 feedback 的鏈條，拆開不知道未來、不知道全域狀態、不知道參數、不知道模型是否正確，以及曾經正確但已過期的五種情況。Cloud capacity 的 online decision、reservoir sampling 與 uncertain routing 分別示範：一旦拿掉上帝視角，保證的比較基準、資源與量詞會如何改變。}
+\chapterabstract{教科書常從完整的圖 $G$、權重 $w$、限制 $C$ 與目標 $f$ 開始；真實研究卻必須先問這些物件從哪裡來。本章沿著 reality、observation、model、algorithm、decision 與 feedback 的 closed loop，拆開不知道未來、不知道全域狀態、不知道參數、不知道模型是否正確，以及曾經正確但已過期的五種情況。Cloud capacity、reservoir sampling 與 uncertain routing 展示資訊限制；最後再讓 routing decision 改變下一輪 latency，說明演算法本身也可能成為資料分布改變的原因。}
 \chapteraudience{先讀第~\ref{ch:complexity}、\ref{ch:optimization}、\ref{ch:randomized}、\ref{ch:synthesis}~章。本章預設理解漸近複雜度、機率與最佳化，但不預設學過 online algorithms 或 robust optimization。閱讀時對每個輸入追問「誰知道、何時知道、是否準確、取得是否免費」。}
 \begin{chaptermastery}
 \item 從一個看似完整的 instance 反推出 observation pipeline，指出至少一項被隱藏的 full-information assumption。
@@ -5193,13 +5255,14 @@ Coverage 高不等於 bug 多，更不等於安全。Fuzzer 沒找到漏洞，�
 \item 證明一個 capacity-provisioning threshold policy 的 competitive ratio，並分辨它和 approximation ratio 的比較基準。
 \item 以不變量證明 reservoir sampling 在常數記憶體下維持 uniform sample。
 \item 比較 nominal、robust 與過度保守的決策，區分 sensitivity、uncertainty 與 misspecification。
+\item 以 closed-loop transition 分開 outcome observation、adaptive update、exogenous change 與 endogeneity。
 \end{chaptermastery}
 
 \section{輸入不是從天而降：在 model 之前還有 observation}
 
 一個 routing problem 可能直接寫成圖 $G=(V,E)$、edge weights $w=(w_e)_{e\in E}$、constraints $C$ 與 objective $f$。這個寫法很適合分析演算法，卻把四個研究問題藏在「given」裡：誰發現節點與邊？誰量測 $w_e$？限制是否仍有效？$f$ 是否真的代表使用者在乎的結果？若答案只是「題目給的」，我們描述的是 textbook instance，而不是它如何從系統產生。
 
-\cref{fig:observation-pipeline}把被省略的層補回來。Reality（現實）不會直接變成 matrix；sensor、log、query 或 protocol message 先形成 observation（觀察），研究者再選擇 representation、variables、constraints 與 objective 建立 model。Algorithm 只在 model 內產生 decision；部署後的 feedback 又可能改變下一輪 observation。每一支箭頭都可能延遲、遺失、量錯或被對手操弄。
+\cref{fig:observation-pipeline}把被省略的層補回來。Reality（現實）不會直接變成 matrix；sensor、log、query 或 protocol message 先形成 observation（觀察），研究者再選擇 representation、variables、constraints 與 objective 建立 model。Algorithm 只在 model 內產生 decision；deployment 不只產生一筆可記錄的 outcome，還可能改變 Reality 本身，使下一輪 observation 來自不同的 data-generating process。每一支箭頭都可能延遲、遺失、量錯或被對手操弄。
 
 \begin{figure}[htbp]
 \centering
@@ -5217,7 +5280,7 @@ Coverage 高不等於 bug 多，更不等於安全。Fuzzer 沒找到漏洞，�
 \draw[cse arrow] (dec)--node[below,font=\scriptsize]{deploy}(feed);
 \draw[cse arrow] (feed)--node[left,font=\scriptsize]{world changes}(real);
 \end{tikzpicture}
-\caption{從現實到決策不是一步函數。Observation layer 決定演算法實際看見什麼；feedback 又使原本正確的資訊隨時間失效。}
+\caption{從現實到決策是一個 closed loop，不是單向 pipeline。Observation layer 決定演算法看見什麼；decision 可能改變 Reality，使下一輪資料不再來自原本假設的環境。}
 \label{fig:observation-pipeline}
 \end{figure}
 
@@ -5385,6 +5448,47 @@ Online 強調未來尚未到達；dynamic setting（動態情境）強調原本�
 
 Stale information 是 observation 與 dynamics 的交會：$\widehat w_e(t-\Delta_e)$ 在量測時可能完全正確，卻因環境已改變而不代表 $w_e(t)$。減少 measurement noise 不會讓 $\Delta_e$ 消失；提高 update frequency 又會增加 messages、energy 或 contention。下一章會把這個交換帶入真正跨 workers 運行的 heuristic search。
 
+\section{Feedback／endogeneity：decision 會改變下一個 instance}
+
+現在把\cref{eq:closed-loop-model}放回一個可手算的 routing loop。兩條 route 共承擔一單位流量；令 $x_t\in\{0,1\}$ 表示第 $t$ 輪是否把全部流量送往 Route A。Route A 的 latency 會隨自身負載增加，Route B 在此簡化為固定值：
+\begin{equation}
+ \label{eq:endogenous-routing-cost}
+ \ell_A(x_t)=4+4x_t,
+ \qquad
+ \ell_B(x_t)=6.
+\end{equation}
+這裡 $\ell_A,\ell_B$ 是當輪可即時且無誤差量得的 latencies；例子刻意排除 noise 與 staleness，讓 feedback 單獨出現。Greedy controller 只選目前 latency 較小的 route，因此
+\begin{equation}
+ \label{eq:endogenous-routing-policy}
+ x_{t+1}=
+ \begin{cases}
+ 1,&\ell_A(x_t)<\ell_B(x_t),\\
+ 0,&\ell_A(x_t)>\ell_B(x_t).
+ \end{cases}
+\end{equation}
+從 $x_0=0$ 開始，A 未承載流量所以 $\ell_A=4<6$，controller 令 $x_1=1$；但這個 decision 使 $\ell_A$ 升為 8，下一輪便令 $x_2=0$。同樣推理重複，得到 $0,1,0,1,\ldots$ 的 two-cycle。
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[node distance=17mm and 24mm,font=\small]
+\node[cse node,align=center] (free) {$x_t=0$\\$\ell_A=4,\ \ell_B=6$};
+\node[cse node,right=of free,align=center] (loaded) {$x_{t+1}=1$\\$\ell_A=8,\ \ell_B=6$};
+\draw[cse arrow,CSEblue] (free) to[bend left=18]
+  node[above,font=\scriptsize]{A looks faster; send all to A} (loaded);
+\draw[cse arrow,CSEvermillion] (loaded) to[bend left=18]
+  node[below,font=\scriptsize]{B now looks faster; leave A} (free);
+\end{tikzpicture}
+\caption{Endogenous routing feedback。每次 observation 都正確，震盪仍會發生，因為 decision 改變了下一輪被量測的 latency。}
+\label{fig:endogenous-routing-loop}
+\end{figure}
+
+\Cref{fig:endogenous-routing-loop}不是 Appendix~\ref{app:parallel-search}同步更新反例的重複版本。這裡只有一個 central controller；proof failure 來自 cost function 依賴部署 action。Appendix~\ref{app:parallel-search}則有多個節點同時依 local／stale state 更新，joint transition 破壞了「其他節點固定」的 local-improvement argument。兩者可能都 oscillate，卻需要不同修正：前者可考慮 damping、flow splitting 或預測 congestion response；後者還要處理 scheduler、message delay 與 coordination。
+
+這個區分也跨到資安與 fuzzing。Detector 上線後，adaptive adversary 可能換 attack strategy；coverage-guided fuzzer 保留新 corpus 後，下一輪 mutation distribution 也被改寫。這些例子不表示必須改用 reinforcement learning；它們只要求研究者停止把 environment 當成與 decision 無關的固定資料來源。
+
+\paragraph{Boundary：offline replay removes feedback.}
+把 policy 在固定 edge weights 的離線 traces 上 replay，不能單獨評估 closed-loop routing。Replay 保持 $\ell_A,\ell_B$ 不受 action 影響，正好刪掉\cref{eq:endogenous-routing-cost}最重要的因果邊。這類實驗可以測 computation，卻不足以支持 deployment latency claim。
+
 \begin{misconception}
 「資料不完整」不能當成一個萬用 caveat。看不到未來、看不到遠端、參數估不準、objective 問錯，以及資料已過期，會破壞不同 proof line，也需要不同的 benchmark、measurement 或 protocol。若沒有指出缺的是哪一種資訊，就還沒有形成可檢查的研究問題。
 \end{misconception}
@@ -5412,6 +5516,11 @@ Capacity provisioning 中，考慮先租 $k-1$ 天、第 $k$ 天仍有需求便�
 \end{exercise}
 
 \begin{exercise}
+\exlevel{Feedback 診斷}
+對\cref{eq:endogenous-routing-policy}依序寫出 $x_0,x_1,x_2,x_3$ 與兩條 route 的 latency。接著分別修改一個條件，使例子變成：(a) environment 會變但完全 exogenous；(b) observation stale；(c) decision 仍影響 latency，但不再形成 two-cycle。每個版本只改一項 assumption。
+\end{exercise}
+
+\begin{exercise}
 \exlevel{遷移挑戰}
 把\cref{tab:robust-routes}改成三條路徑，使 nominal、expected-value 與 worst-case robust decision 分別選出不同路徑。明示你假設的 probability distribution 與 uncertainty set；若無法使三者不同，說明是哪個數值關係阻止它。
 \end{exercise}
@@ -5428,7 +5537,7 @@ Capacity provisioning 中，考慮先租 $k-1$ 天、第 $k$ 天仍有需求便�
 
 \section{費曼驗收：從一份完整 instance 找回被省略的世界}
 \begin{feynmancheck}
-畫出\cref{fig:observation-pipeline}，但把每個節點換成你自己的通訊或資安例子。接著不看\cref{tab:five-unknowns}，分別解釋 future unknown、global unknown、parameter unknown、model unknown 與 known-but-obsolete；每種都要給一個「增加計算速度仍無法解決」的理由。最後重建 online threshold 與 reservoir sampling 的核心證明，指出兩個公式各自支付了哪一項資訊或隨機假設。
+畫出\cref{fig:observation-pipeline}，但把每個節點換成你自己的通訊或資安例子。接著不看\cref{tab:five-unknowns}，分別解釋 future unknown、global unknown、parameter unknown、model unknown 與 known-but-obsolete；每種都要給一個「增加計算速度仍無法解決」的理由。再以\cref{fig:endogenous-routing-loop}說清楚 outcome observation、adaptive update 與 endogeneity 的差別，指出為何 perfect measurement 仍不能阻止震盪。最後重建 online threshold 與 reservoir sampling 的核心證明，說明每個公式支付了哪一項資訊或隨機假設。
 \end{feynmancheck}
 \begin{chapterrecap}
 \item Reality 與 model 之間還有 observation；solver 不能替研究者驗證資料如何被取得。
@@ -5437,6 +5546,7 @@ Capacity provisioning 中，考慮先租 $k-1$ 天、第 $k$ 天仍有需求便�
 \item Reservoir sampling 用 uniform replacement 與歸納不變量，以常數 space 維持 uniform sample。
 \item Robust decision 的保證相對 uncertainty set；集合本身仍需證據，過大也會造成保守成本。
 \item Dynamic analysis 問 update、query 與 adaptation，而不只從頭重算的 sequential time。
+\item Feedback／endogeneity 問 decision 是否改變下一個 state 或 data distribution；它不等同於 noise、staleness 或一般 dynamic change。
 \end{chapterrecap}
 
 \chapter[Parallel and Distributed Heuristic Search：跨 Workers 的搜尋]
@@ -5894,6 +6004,7 @@ Gene M. Amdahl.
 \item 把 approximation proof 拆成 feasibility、OPT bound、ALG-to-bound control 與 ratio，而不是直接和未知 $\OPT$ 比較。
 \item 明示 probability space，分開 expectation、concentration 與 high probability，並依 assumptions 選擇 Markov、Chebyshev 或 Chernoff。
 \item 把一項研究主張反查為 model、algorithm、bound／guarantee、evaluation protocol 與 empirical evidence。
+\item 對 observed sample、target population 與 deployment distribution 畫出證據邊界，並判斷 decision 是否內生地改變下一輪資料。
 \end{enumerate}
 
 \paragraph{自學校準：能否離開熟悉外殼？}
@@ -5913,6 +6024,7 @@ Gene M. Amdahl.
 \item 對 distributed protocol 分開 safety 與 liveness，以 quorum intersection 加 honest-state invariant 證明不能形成衝突 certificates。
 \item 把 fuzzing 映射為 representation、mutation kernel、feedback objective、selection、stopping 與可重現 evaluation protocol。
 \item 對一個完整 instance 追問 information source，分開 future、global、parameter、model 與 stale-state limitations，並重建 online threshold 與 reservoir invariant。
+\item 以 closed-loop state transition 分開 outcome observation、adaptive update、exogenous change 與 endogeneity，說明 offline replay 何時刪掉了真正的 feedback。
 \item 對 parallel／distributed heuristic 分開 work、span、speedup、communication、termination、convergence 與 stable-point quality，不以 worker 數代替證明或公平實驗。
 \end{enumerate}
 
@@ -6109,6 +6221,7 @@ Chebyshev inequality & Chebyshev 不等式；以 variance 控制偏離 mean 至�
 Charging argument & 記帳論證；把演算法成本分攤給元素、限制或事件，再以每份 charge 的上界控制總成本。 \\
 Cut certificate & 割證據；network flow 中以 $s$--$t$ cut capacity 對任何 feasible flow 提供 upper bound；與同值 flow 相遇時證明 optimality。 \\
 Claim--evidence discipline & 主張—證據紀律；先明示研究主張，再逐層檢查模型、演算法、品質界與實驗是否真的支持該主張。 \\
+Closed-loop model & 閉環模型；observation 影響 decision，而 decision 又經 state transition 改變後續 environment 與 observation。 \\
 CLRS & Cormen、Leiserson、Rivest、Stein 四位作者姓氏縮寫，通常指《Introduction to Algorithms》。 \\
 Complementary slackness & 互補鬆弛；原始與對偶最優解之間，限制鬆弛量與相應對偶變數乘積為零的條件。 \\
 Communication round & 通訊輪次；一組可並行 messages 完成後，下一組依賴它們的 messages 才能開始。Round complexity 與總 message／bit volume 回答不同問題。 \\
@@ -6130,7 +6243,9 @@ Dual function & 對固定 multipliers，把 Lagrangian 對 primal variables 取 
 Decider & 判定器；對每個輸入都停止，並正確回答該字串是否屬於指定 language 的演算法。 \\
 Decision／search／optimization & 決定／搜尋／最佳化版本；依序要求 yes--no、實際可行解與最佳解或最佳值，版本間轉換必須明示。 \\
 Derandomization & 去隨機化；把 randomized existence proof 或 algorithm 轉成 deterministic algorithm，同時保存所需 guarantee。 \\
+Data-generating process & 產生 observations 或 workloads 的機制；可能由外部環境固定，也可能因 deployed decision 而改變。 \\
 Differential fuzzing & 差異模糊測試；把同一輸入交給多個 implementations 或 versions，以不一致作為可疑訊號；仍需外部規格判斷哪一方錯。 \\
+Distribution shift & 分布移轉；evaluation、target 或 deployment instances 來自不同 distributions，使原本的 empirical estimand 或 ranking 未必仍適用。 \\
 Digital signature & 數位簽章；signer 用 secret key 產生 signature，任何持有 public key 者可驗證。它提供的 authenticity 不會自動阻止合法舊訊息 replay。 \\
 DP & dynamic programming，動態規劃；保存重疊子問題的答案並組合成原問題解。 \\
 Dynamic algorithm & 動態演算法；input 持續更新時維護答案，常分開分析 update time、query time 與 adaptation delay，而非每次只從頭重算。 \\
@@ -6140,8 +6255,10 @@ Equivocation & 矛盾陳述；同一 process 在同一 protocol position 對不�
 EUF-CMA & existential unforgeability under chosen-message attack，選擇訊息攻擊下的存在性不可偽造；對手可查詢簽章 oracle，但須輸出一份對未查詢訊息有效的偽造。 \\
 Effect size & 效果量；兩方法差異的實際幅度，例如 paired median difference。它回答「差多少」，與只回答資料是否反對虛無假設的 $p$-value 不同。 \\
 Empirical estimand & 實證估計目標；實驗準備描述或估計的明確量，例如固定 instance 與 budget 下，跨 random seeds 的 median objective value。 \\
+Feedback／endogeneity & Feedback 表示結果回到後續決策；endogeneity 更進一步表示 decision 本身改變下一輪 state、observation、workload 或對手行為。 \\
 Expectation & 期望值；random variable 對其機率分布的加權平均，描述分布重心而非單次執行上限。 \\
 Evaluation protocol & 評估協定；在觀察結果前固定 instances、platform、budget、seeds、metrics、timeouts 與 aggregation rules 的比較規格。 \\
+Exogenous environment & 外生環境；environment transition 不依賴演算法 action。世界仍可隨時間變動，但變化不是 deployed decision 所造成。 \\
 Extreme point & 極點；凸集合中不能寫成兩個不同集合內點之真凸組合的點。若非空 feasible polyhedron 具有 extreme point，且線性目標有有限最優值，則存在 optimal extreme point。 \\
 Fathom／close a node & 證明關閉搜尋節點；以 infeasibility、integral solution 或無法勝過 incumbent 的 bound，證明該 subtree 不需再探索。 \\
 Feasible region & 可行域；滿足全部限制式的決策向量集合。 \\
@@ -6154,6 +6271,7 @@ Flow conservation & 流量守恆；除 source 與 sink 外，每個 vertex 的�
 Game hopping & 遊戲跳躍證明；用一串相鄰且差異可界定的安全遊戲連接真實遊戲與容易分析的遊戲。 \\
 Game theory & 賽局理論；以 players、actions、information、strategies 與 utilities 描述策略互動，研究 best response、equilibrium 等解概念。 \\
 Genetic Algorithm (GA) & 遺傳演算法；以 selection、crossover 與 mutation 更新 population。名稱不保證 representation 具有可安全重組的結構。 \\
+Generalization & 泛化；由有限 observed instances 推論未觀察 target population 表現所跨越的證據步驟，必須明示 sampling 與 population assumptions。 \\
 Heuristic & 啟發式；利用問題結構快速產生或改善解的規則，本身不自動附帶最壞情況保證。 \\
 High probability & 高機率；失敗率隨輸入規模衰減的保證，精確衰減形式必須在定理中明示。 \\
 Hash function & 雜湊函數；把任意長輸入映射為固定長 digest。Collision resistance 等性質不等於訊息來源驗證。 \\
@@ -6216,6 +6334,7 @@ Primal--dual algorithm & 原始—對偶演算法；同步建構原始可行解�
 Primal bound & 原始界；由 primal feasible solution 提供的界。最小化時是上界，最大化時是下界。 \\
 Primal problem & 最初直接由決策變數、目標與限制寫出的最佳化觀點；dual 是與它配對的界建構觀點，並非「相反問題」。 \\
 Pseudo-polynomial time & 偽多項式時間；對數值大小為多項式，但對其二進位輸入長度可能為指數的時間界。 \\
+Query complexity & 查詢複雜度；演算法對明示 oracle、simulator 或昂貴 evaluator 的呼叫次數。它與呼叫以外的 operation count、wall-clock 和 sample complexity 必須分開報告。 \\
 Quorum & 法定人數／仲裁集合；分散式協定中足以支持某階段決定的節點集合。 \\
 Quorum intersection & 仲裁交集；任兩個足夠大的 quorums 必有共同節點的集合性質。安全證明還需 invariant 限制誠實交集節點不能支持衝突值。 \\
 Random seed & 隨機種子；決定偽隨機序列的初始值，用來重現一次隨機執行。 \\
@@ -6232,6 +6351,7 @@ Resource augmentation & 資源增補分析；允許演算法使用比 benchmark 
 Rounding & 捨入；把分數解轉成離散可行解，並分析可行性與成本損失。 \\
 Robust optimization & 穩健最佳化；在決策前承認參數落於 uncertainty set，尋找對該集合具有明示 worst-case 或其他穩健保證的解；集合本身仍是建模主張。 \\
 Safety／liveness & 安全性／活性；前者要求壞事不發生，後者要求好事終會發生。 \\
+Sample complexity & 樣本複雜度；在明示 distribution、accuracy 與 confidence 要求下，達到指定推論或學習目標所需的樣本數。它不是資料集大小的別名。 \\
 Sanitizer & 動態檢測器；在執行時把 memory-safety violation、undefined behavior 等轉成較清楚的 failure signal。它是 oracle 的一部分，也有 blind spots。 \\
 Search landscape & 搜尋地景；由 search space $S$、neighborhood mapping $N$ 與 objective function $f$ 組成的三元組 $(S,N,f)$。只改 representation 或 neighborhood，就可能改變可達性、local optima 與 basins。 \\
 Security parameter & 安全參數；以 $\lambda$ 表示、控制 key size 與對手資源尺度的參數。漸近安全定義研究 $\lambda$ 增大時 advantage 如何衰減。 \\
@@ -6257,6 +6377,7 @@ Surrogate objective & 代理目標；真正目標難以直接觀察時使用的�
 Survivorship bias & 倖存者偏差；只分析成功完成或表現較好的 runs，因而系統性忽略 timeout、失敗與被淘汰樣本。 \\
 Tabu search & 把近期 move attributes 存入短期記憶並暫時禁用，以改變局部可達性及抑制循環的搜尋方法。 \\
 Tail bound & 尾界；限制隨機變數偏離門檻之機率的上界，並不是該機率的點估計。 \\
+Target population & 目標母體；研究主張準備描述的 instance 或 workload 集合及其 distribution，不一定等同手上的 benchmark sample 或部署後流量。 \\
 Trajectory & 搜尋軌跡；一次執行依序造訪的狀態序列 $x_0,x_1,\ldots$，不等同跨 seeds 的統計分布。 \\
 Tuning leakage & 調參洩漏；以測試 instances 反覆選超參數，使報告結果也吸收了測試集資訊，因而高估泛化表現。 \\
 TSP & traveling salesperson problem，旅行推銷員問題。 \\

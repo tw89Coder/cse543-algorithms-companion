@@ -7,9 +7,10 @@ Yat-sen University.
 The book develops the five syllabus topics—metaheuristics, algorithms review,
 mathematical optimization, approximation algorithms, and randomized
 algorithms—through intuition, concrete examples, formal models, proofs,
-counterexamples, exercises, and Feynman checks. Additional material on
-security games, provable security, distributed security, and fuzzing is kept
-in clearly marked appendices.
+counterexamples, exercises, and Feynman checks. Additional material is divided
+into clearly marked appendix groups: complexity, security, and systems;
+followed by limited-information algorithms and parallel/distributed heuristic
+search.
 
 > **Unofficial material.** This repository is maintained independently by YHL.
 > It does not represent an official publication or position of National Sun
@@ -47,7 +48,7 @@ for A4 single-page reading and continuous tablet scrolling.
 ## Status
 
 Release candidate, dated September 2026. The compiled edition currently has
-149 pages.
+168 pages.
 
 ## License
 

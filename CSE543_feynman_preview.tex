@@ -458,6 +458,8 @@ Genetic Algorithm（GA；遺傳演算法）在第 $t$ 輪維持 population $P_t$
 
 \Cref{fig:ga-operators} 真正的限制來自 representation，而不是 operator 的自然界名稱。若相鄰 bits 共同編碼一個不可拆結構，任意 crossover 可能大量製造 infeasible children；這時應改 representation、使用 repair operator，或設計保持可行性的 problem-specific crossover。Population size 增加也不自動等於 diversity：selection pressure 過強時，整個 population 仍可能很快複製成近乎相同的候選。
 
+Population 也不等於 parallelism（平行性）。一個程式可以在單 worker 上依序更新整個 population；反過來，單一候選的昂貴 objective evaluation 也可能被拆給多個 workers。當 candidates 分散到不同 workers 後，是否共享 global best、多久 migration、同步等待還是接受 stale state，會同時改變 wall-clock 與 search dynamics。附錄~\ref{app:parallel-search}將這些選擇從「多開幾個 threads」拆成可分析的運算與資訊模型。
+
 \begin{table}[htbp]
 \centering
 \caption{常見 metaheuristics 改變搜尋的不同位置。}
@@ -738,6 +740,9 @@ queue 的先進先出順序保證所有距離 $k$ 的頂點先於距離 $k+1$ �
 \begin{misconception}
 忽略輸入表示會得出荒謬複雜度。例如對整數 $N$ 做 $N$ 次迴圈是對數值的線性時間，卻是對位元長度 $b=\lceil\log_2(N+1)\rceil$ 的指數時間。另有一個經典反例：Dijkstra 遇到負權邊時，「已確定」距離可能之後再下降，安全選擇的證明直接失效。
 \end{misconception}
+
+\paragraph{Sequential time 只是 computation model 的一個投影。}
+本章的 running time 假設完整 input 可由一台抽象機器存取並依序執行。若資料放不進 memory、只以 stream 到達，或分散在不同 nodes，分析還要追蹤 space、passes、work、span 與 communication。這不推翻本章的 $T(n)$；它要求在引用之前先說明 $T$ 相對哪一種 machine 與 information access。第~\ref{ch:synthesis}章建立維度地圖，附錄~\ref{app:without-omniscience}與~\ref{app:parallel-search}再拆掉完整資訊與單機假設。
 
 \section{練習：從 growth rate 到 shortest-path proof}
 \begin{exercise}
@@ -2120,6 +2125,8 @@ x^*(\alpha)=
 Sensitivity analysis 不是保證「舊解在資料改變後仍差不多好」。它精確追蹤的是：在指定 perturbation 下，哪個 basis（局部決定 vertex 的一組獨立 tight equations）／active set 仍 optimal，以及 optimal value 如何變化。若模型 degenerate（同一 vertex 有多於所需數目的 tight constraints）、optimal solution 不唯一或 data 變動跨過 breakpoint，multiplier 可能不唯一，導數也可能只剩 one-sided derivative；對本節的 maximization value function，則可用 supergradient（支撐 concave value function 的廣義斜率）解讀。
 \end{misconception}
 
+Sensitivity、robustness 與 model validation 回答三個不同的 Why。Sensitivity 問資料若改成另一個已指定值，optimal solution 如何移動；robust optimization 在決策前承認參數只知道一個集合，要求同一決策面對其中情境仍有保證；model validation 則問 objective 與 constraints 是否根本表達了需求。附錄~\ref{app:without-omniscience}以 uncertain routing 將三者放在同一個數值例子中比較。
+
 \section{LP relaxation 與 branch-and-bound}
 回看\cref{eq:makespan-ip}。Integer feasible assignment 給出 $L=5$，所以對這個 minimization problem，5 是目前的 upper bound（已有可達成解）；LP relaxation 給出 4.5，所以 4.5 是 lower bound（任何 integer solution 都不可能更低）。由於每台負載是整數處理時間的總和，任何 integer assignment 的 $L$ 也必為整數，故
 \[
@@ -3411,6 +3418,8 @@ Las Vegas 演算法可能具有 polynomial expected running time，仍存在極�
 \paragraph{Seed 可重現一次執行，不代表實驗完整。}
 固定 random seed（隨機種子，即偽隨機序列的初始值）有助重現，卻不能只挑一個好 seed。報告應說明 pseudo-random number generator（偽隨機數產生器，PRNG）、種子生成方式、獨立重複次數、平均與中位數、分位數或信賴區間。Empirical quantile（經驗分位數）描述觀測樣本；confidence interval（信賴區間）推論未知統計量；theoretical high-probability bound（理論高機率界）則來自模型假設，三者不能互相改名。
 
+多 worker 重跑也必須重新檢查 independence。若 workers 共用 random stream、定期複製同一 incumbent，或由相同 stale observation 驅動，它們的成功事件可能相關；此時「跑 $p$ 次」不自動把全部失敗機率變成 $p$ 次方。Random backoff 也可以用來打破 distributed symmetry，但它是否導致 convergence 仍取決於 scheduler、delay 與 state assumptions；附錄~\ref{app:parallel-search}會分開這兩種 randomization 用途。
+
 \section{練習：重建 MGF、MAX-CUT 與 conditional expectation}
 \begin{exercise}
 \exlevel{概念確認}\label{ex:amplification}
@@ -3625,6 +3634,60 @@ $Z_A(I;s,\tau)=f_I(S_A(I;s,\tau))$ 表示一次 run 的目標值。後文省略�
 
 讀\cref{fig:evidence-chain}時可反向稽核；每一支箭頭都要能回答「前一層如何支持下一層？」若報告說「方法可部署」，便向左追問輸出是否滿足所有限制；若說「接近最優」，便追問最優值、有效上下界或 approximation theorem 從何而來；若說「通常更好」，便追問 instances、random seeds、計算 budget 與統計摘要是否在比較前固定。
 
+\section{Running time 不是全部：研究主張的八維座標}
+\label{sec:algorithmic-dimensions}
+
+前一節把證據分層；本節換一個方向追問同一演算法可被哪些正交問題檢查。經典敘述常默認：完整 input 已在一台抽象機器的記憶體裡、世界在 computation 期間不變、遠端資訊可立即取得。這些不是錯誤，而是 computation 與 information model；研究的危險在於使用了假設，卻沒有在 claim 中說出來。
+
+\cref{tab:algorithmic-dimensions}不是要把整個 algorithms universe 塞進八列，而是一張閱讀陌生 paper 時的 radar。某篇工作可以只處理其中兩三維；沒有處理的維度不代表方法錯誤，但會限制結論能走多遠。
+
+\begin{table}[htbp]
+\centering
+\caption{演算法主張的八個維度家族。每一列都是問題，不是要求每篇論文交出全部答案。}
+\begin{tabularx}{\textwidth}{@{}p{.22\textwidth}p{.28\textwidth}YY@{}}
+\toprule
+Dimension & 核心問題 & 典型證據或量 & 容易被隱藏的假設 \\
+\midrule
+Logical & 結果是否正確、可行？ & invariant、certificate、proof & 輸入與 arithmetic 符合模型 \\
+Computation／Structure & 算多少；難度來自哪個結構？ & time、space、work、span、$T(n,k)$ & 單機 sequential model；只以 $n$ 描述難度 \\
+Quality & 解離 OPT 或需求多遠？ & gap、approximation、competitive ratio & benchmark 和 ALG 看見相同資訊 \\
+Stochastic & 隨機性帶來多少風險？ & expectation、variance、tail、failure probability & probability space、independence、stationarity \\
+Information & 誰在何時知道什麼？ & online prefix、local view、query/sample access & future、global state 或參數免費可得 \\
+Communication & 為取得資訊必須搬多少？ & messages、bits、rounds、staleness & data movement 與 synchronization 免費 \\
+Temporal／Dynamic & 世界是否在計算時改變？ & update/query time、adaptation delay、drift & input static；舊 state 仍代表現在 \\
+System／Empirical & 理論到了平台仍成立嗎？ & wall-clock、energy、scaling、reproducibility & workload、hardware、timeout 與 tuning 可比 \\
+\bottomrule
+\end{tabularx}
+\label{tab:algorithmic-dimensions}
+\end{table}
+
+Structural dimension 特別提醒：$T(n)$ 不是描述 hardness 的唯一方式。若某個參數 $k$---例如 solution size、treewidth、最大度數或衝突節點數---才是 combinatorial explosion 的來源，研究者會問是否存在
+\[
+ T(n,k)=g(k)n^{O(1)}.
+\]
+這個形式不自動表示演算法實用；$g(k)$ 可能很大。但它把「NP-hard」之後的問題改成「哪個 structure 真正承擔困難？」附錄~\ref{app:npdeep}從數值編碼展示同一種研究態度；本書不在此展開完整 parameterized complexity。
+
+Temporal dimension 也不等同 online。Online algorithm 面對尚未到達的 future；dynamic algorithm 可能曾完整知道 $G_0$，但世界後來變成 $G_1,G_2,\ldots$。前者問在 prefix information 下如何決策，後者還會問一次 update 後多久恢復可用答案。兩者與 information、communication 維度的共同主線在附錄~\ref{app:without-omniscience}展開。
+
+\begin{definition}[可稽核的 algorithmic claim]
+一項完整演算法主張至少要讓讀者定位下列七個欄位：
+\[
+ \begin{aligned}
+ \text{Claim}=(&\text{problem model},\ \text{information model},\
+ \ \text{computation model},\\
+ &\text{environment/timing model},\ \text{resource budget},\
+ \ \text{guarantee},\ \text{failure/adversary model}).
+ \end{aligned}
+\]
+欄位不一定各有一條 theorem，但不能靠讀者猜測。Security 不是第九種成本；它透過 failure/adversary model 改變哪些 observations、states 與 transitions 仍可信。
+\end{definition}
+
+例如「我們的 distributed heuristic 在 8 workers 上有 7.6 倍 speedup，並找到更好的解」同時混合 computational、communication、quality 與 empirical dimensions。稽核時至少要問：單 worker 與多 worker 是否使用相同 algorithm、instance、stopping rule 與 target quality？7.6 是單次、median 還是 best seed？是否計入 data transfer 與 failed workers？更好的解來自較快 computation、八倍總 evaluations，還是 workers 交換候選後改變 search dynamics？在這些欄位補齊前，數字可以是 observation，尚不是可移植的 scalability claim。附錄~\ref{app:parallel-search}會沿一個頻道配置案例逐項拆開。
+
+\begin{coreintuition}
+Running time 只是演算法成本的一個投影。看到一個陌生方法時，先問它知道什麼、世界是否會變、資訊要搬多遠、比較基準比它多知道什麼，再問公式能支持哪一句 claim。
+\end{coreintuition}
+
 \section{從 bound interval 到公平比較：正式記號與評估協定}
 \subsection{先畫區間，再決定最小化與最大化的界方向}
 對最小化實例 $I$，令 $L(I)$ 是由 LP 或對偶得到的下界，$A(I)$ 是某演算法產生的可行解目標值，$\OPT(I)$ 是真實最優值。定義相對最優差距（optimality gap）為 $\mathrm{gap}(I)$；一個完整評估表可包含
@@ -3822,7 +3885,7 @@ $D_s=M(I,s)-H(I)$      & 2   & 9   & $-15$ & 15 & 6 \\
 \end{chapterrecap}
 
 \appendix
-\part{課綱外附錄：資安與系統深化}
+\part{課綱外延伸 I：複雜度、資安與系統}
 
 \chapter{Beyond the Label NP-hard：數值編碼、Pseudo-polynomial DP 與 FPTAS}
 \label{app:npdeep}
@@ -4905,6 +4968,9 @@ Proof 的 form 是集合交集加反證；idea 是兩份大證據無法完全避
 
 Appendix C 的 rational model 可問：若 double-voting 會失去 deposit，是否能降低攻擊誘因？這是有價值但不同的 claim。Byzantine safety proof 必須容忍節點即使沒有經濟利益也任意偏離；incentive-compatible design 則依賴可觀察證據、penalty 可執行、資產價值與外部賄賂上界。Slashing（懲罰）可改變 utility，不能擦除 network、key compromise 與 state-loss assumptions。
 
+\paragraph{Distributed search 與 distributed security 的分界。}
+附錄~\ref{app:parallel-search}中的節點通常遵循演算法，只因 local view、delay 或同步更新而出現 oscillation；它主要追問 convergence、quality 與 communication。此處還允許 Byzantine replicas 故意 equivocate、延遲或偽造 state，因此必須另加 authentication、adversary model、safety 與 liveness。把普通 asynchronous bug 修好，不等於已抵抗惡意節點；反過來，quorum safety proof 也不保證 heuristic quality。
+
 \section{練習：從 system model 寫到 safety argument}
 \begin{exercise}
 \exlevel{概念確認}
@@ -5073,6 +5139,8 @@ Input minimization（輸入最小化）尋找仍重現 failure 的較小 input�
 \end{description}
 這些方法不是無條件升級。它們把額外 knowledge 注入 representation、proposal 或 oracle，因此比較時要同時報告建模人工、dictionary／grammar 來源與 tuning budget。
 
+Parallel fuzzing 也不是把單 worker throughput 乘上 workers 數。Workers 若完全獨立，可能重複探索相同 paths；若頻繁同步 corpus，data transfer、deduplication 與 queue contention 會吃掉時間，並使各 worker 的 mutation trajectories 相關。公平報告應分開 aggregate executions/sec、wall-clock time-to-bug、corpus communication 與 unique root causes，並說明 improvement 是更多總 evaluations，還是 synchronization policy 改變了 search diversity。這些成本模型在附錄~\ref{app:parallel-search}集中建立。
+
 \section{Coverage、throughput 與 unique bugs 不能互相代換}
 \begin{misconception}
 Coverage 高不等於 bug 多，更不等於安全。Fuzzer 沒找到漏洞，只能表示在指定 harness、oracle、資源與 mutation 下未觀測到；它不是不存在漏洞的證明。
@@ -5108,6 +5176,605 @@ Coverage 高不等於 bug 多，更不等於安全。Fuzzer 沒找到漏洞，�
 \item coverage-guided fuzzing 是帶回饋的隨機搜尋；coverage 是 surrogate，不是漏洞存在性的證明。
 \item corpus、mutation、energy 與 retention policy 共同決定搜尋動力學，不能只比較 mutation 名稱。
 \item 評估應固定合理預算、重複多個 seed、處理 censored runs，並以 crash root cause 去重。
+\end{chapterrecap}
+
+\part{課綱外延伸 II：有限資訊與分散式計算}
+
+\chapter{Algorithms without Omniscience：從完整資訊到有限觀察}
+\label{app:without-omniscience}
+\noindent\textbf{範圍聲明：}本章為課綱外 enrichment。它不把 online、streaming、robust 與 dynamic algorithms 壓成四門迷你課，而是建立一個共同的 information model（資訊模型）：演算法由誰取得什麼資訊、何時取得、準確到什麼程度，又為取得資訊付出多少代價。
+\chapterabstract{教科書常從完整的圖 $G$、權重 $w$、限制 $C$ 與目標 $f$ 開始；真實研究卻必須先問這些物件從哪裡來。本章沿著 reality、observation、model、algorithm、decision 與 feedback 的鏈條，拆開不知道未來、不知道全域狀態、不知道參數、不知道模型是否正確，以及曾經正確但已過期的五種情況。Cloud capacity 的 online decision、reservoir sampling 與 uncertain routing 分別示範：一旦拿掉上帝視角，保證的比較基準、資源與量詞會如何改變。}
+\chapteraudience{先讀第~\ref{ch:complexity}、\ref{ch:optimization}、\ref{ch:randomized}、\ref{ch:synthesis}~章。本章預設理解漸近複雜度、機率與最佳化，但不預設學過 online algorithms 或 robust optimization。閱讀時對每個輸入追問「誰知道、何時知道、是否準確、取得是否免費」。}
+\begin{chaptermastery}
+\item 從一個看似完整的 instance 反推出 observation pipeline，指出至少一項被隱藏的 full-information assumption。
+\item 分開 future unknown、global unknown、parameter unknown、model unknown 與 stale state，並說出它們破壞的不是同一種保證。
+\item 證明一個 capacity-provisioning threshold policy 的 competitive ratio，並分辨它和 approximation ratio 的比較基準。
+\item 以不變量證明 reservoir sampling 在常數記憶體下維持 uniform sample。
+\item 比較 nominal、robust 與過度保守的決策，區分 sensitivity、uncertainty 與 misspecification。
+\end{chaptermastery}
+
+\section{輸入不是從天而降：在 model 之前還有 observation}
+
+一個 routing problem 可能直接寫成圖 $G=(V,E)$、edge weights $w=(w_e)_{e\in E}$、constraints $C$ 與 objective $f$。這個寫法很適合分析演算法，卻把四個研究問題藏在「given」裡：誰發現節點與邊？誰量測 $w_e$？限制是否仍有效？$f$ 是否真的代表使用者在乎的結果？若答案只是「題目給的」，我們描述的是 textbook instance，而不是它如何從系統產生。
+
+\cref{fig:observation-pipeline}把被省略的層補回來。Reality（現實）不會直接變成 matrix；sensor、log、query 或 protocol message 先形成 observation（觀察），研究者再選擇 representation、variables、constraints 與 objective 建立 model。Algorithm 只在 model 內產生 decision；部署後的 feedback 又可能改變下一輪 observation。每一支箭頭都可能延遲、遺失、量錯或被對手操弄。
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[node distance=9mm and 11mm]
+\node[cse node] (real) {Reality\\真實系統};
+\node[cse node,right=of real] (obs) {Observation\\量測、訊息、樣本};
+\node[cse node,right=of obs] (model) {Model\\變數、限制、目標};
+\node[cse node,below=of model] (alg) {Algorithm\\推導與計算};
+\node[cse node,left=of alg] (dec) {Decision\\配置或動作};
+\node[cse node,left=of dec] (feed) {Feedback\\結果與新狀態};
+\draw[cse arrow] (real)--node[above,font=\scriptsize]{observe}(obs);
+\draw[cse arrow] (obs)--node[above,font=\scriptsize]{abstract}(model);
+\draw[cse arrow] (model)--node[right,font=\scriptsize]{solve}(alg);
+\draw[cse arrow] (alg)--node[below,font=\scriptsize]{choose}(dec);
+\draw[cse arrow] (dec)--node[below,font=\scriptsize]{deploy}(feed);
+\draw[cse arrow] (feed)--node[left,font=\scriptsize]{world changes}(real);
+\end{tikzpicture}
+\caption{從現實到決策不是一步函數。Observation layer 決定演算法實際看見什麼；feedback 又使原本正確的資訊隨時間失效。}
+\label{fig:observation-pipeline}
+\end{figure}
+
+\begin{definition}[Information model]
+一個 information model（資訊模型）明示：哪些 agents 能存取哪些資料、資料在何時可用、觀察含有多少 noise 或 delay，以及 query、storage 與 communication 的成本。它不是 input format 的同義詞；相同的數學 instance，在 full information、online arrival 與 local observation 下會形成不同問題。
+\end{definition}
+
+例如 link $e$ 在時間 $t$ 的真實延遲是 $w_e(t)$，控制器收到的可能只是
+\[
+ \widehat w_e(t-\Delta_e)+\varepsilon_e,
+\]
+其中 $\Delta_e\ge0$ 是 observation age（觀察延遲），$\varepsilon_e$ 是 measurement error（量測誤差）。即使 $\varepsilon_e=0$，當 $\Delta_e>0$ 時資料也可能曾經正確、現在卻已過期；把兩者都叫「不準」會掩蓋不同的修正方法。
+
+\begin{coreintuition}
+演算法的保證永遠相對於它知道什麼、何時知道、能保存與傳送多少，以及世界在計算期間是否改變。先問「哪份資訊被當成免費神諭？」常比先問「要用哪個演算法？」更接近研究問題。
+\end{coreintuition}
+
+\section{五種「不知道」破壞不同假設}
+
+有限資訊不是單一現象。\cref{tab:five-unknowns}將五種常見缺口並排；每一列拿掉的 assumption 不同，因此適用的 benchmark 與證明義務也不同。
+
+\begin{table}[htbp]
+\centering
+\caption{從完整資訊模型移除不同假設後形成的研究入口。}
+\begin{tabularx}{\textwidth}{@{}p{.19\textwidth}p{.27\textwidth}YY@{}}
+\toprule
+缺少的資訊 & 被移除的假設 & 常見研究語言 & 第一個該問的問題 \\
+\midrule
+Future unknown & 一開始知道完整到達序列 & online algorithm & 決策能否撤回？OPT 是否看得到未來？ \\
+Global unknown & 每個節點知道全域 state & local／distributed & 哪些訊息必須跨哪些邊？ \\
+Unknown parameter & 模型參數已知且準確 & stochastic／learning／robust & 未知量是估計、集合，還是分布？ \\
+Model unknown & 目標與限制忠於需求 & validation／misspecification & 最佳化的是需求還是 surrogate？ \\
+Obsolete state & state 在計算期間不變 & dynamic／adaptive & 更新、查詢與追上變化各要多久？ \\
+\bottomrule
+\end{tabularx}
+\label{tab:five-unknowns}
+\end{table}
+
+這五列不是互斥分類。基地台可能只知道鄰居、收到的是舊量測、traffic distribution 也未知；研究設計仍應逐項拆開，因為「多收集樣本」能減少 estimation error，卻不能自動取得遠端 global state，也不能修正錯誤 objective。
+
+\section{Online capacity provisioning：OPT 比你多知道未來}
+
+考慮一段連續高負載期。每天租用臨時 capacity 的成本為 1；也可支付整數 $B\ge1$ 一次購入 reserved capacity，之後這段高負載期不再付費。令 $d\ge1$ 是高負載實際持續的天數。Offline optimum（離線最優解）事先知道 $d$，成本為
+\[
+ \OPT(d)=\min\{d,B\}.
+\]
+Online algorithm（線上演算法）在第 $t$ 天做決定時只知道需求已持續到今天，不知道明天是否結束；competitive analysis 系統化比較這種有限資訊決策與可見完整序列的 offline benchmark\cite{borodin-el-yaniv}。
+
+\begin{definition}[Competitive ratio]
+對成本最小化的 online algorithm $A$，若存在常數 $\rho\ge1$ 與不依賴輸入序列 $\sigma$ 的常數 $\beta\ge0$，使所有合法序列都滿足
+\[
+ \operatorname{cost}_A(\sigma)
+ \le \rho\,\OPT(\sigma)+\beta,
+\]
+則稱 $A$ 為 $\rho$-competitive。這裡的 OPT 是能看見完整未來的 offline benchmark；資訊能力不對稱是定義的一部分。
+\end{definition}
+
+考慮 threshold policy：先租前 $B-1$ 天；若需求到第 $B$ 天仍存在，就在第 $B$ 天開始時購買 reserved capacity。\cref{fig:online-threshold}顯示演算法只沿著已發生的 prefix 前進，紅色虛線右側在當時尚不可見。
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[x=1.05cm,y=1cm,font=\small]
+\draw[cse arrow] (0,0)--(9.2,0) node[right]{time};
+\foreach \x in {1,...,8}{\draw (\x,.1)--(\x,-.1);}
+\foreach \x in {1,...,4}{
+  \draw[CSEblue,line width=2pt] (\x-.35,.45)--(\x+.35,.45);}
+\node[above,font=\footnotesize] at (2.5,.55) {rent: only the observed prefix is known};
+\draw[CSEvermillion,densely dashed,line width=.9pt] (5,-.45)--(5,1.15)
+  node[above,align=center,font=\footnotesize] {day $B$:\\buy if demand persists};
+\draw[CSEgray,densely dotted,line width=1pt] (5.15,.45)--(8.7,.45)
+  node[midway,above,font=\footnotesize] {future not yet visible};
+\end{tikzpicture}
+\caption{Online threshold decision。演算法在第 $B$ 天以前不能區分「明天結束」與「還會持續很久」兩個序列。}
+\label{fig:online-threshold}
+\end{figure}
+
+\begin{theorem}[Threshold policy 是嚴格小於 2 的 competitive algorithm]
+上述 policy 對每個持續天數 $d$ 都滿足
+\[
+ \operatorname{cost}_A(d)<2\OPT(d).
+\]
+因此它是 2-competitive。
+\end{theorem}
+\begin{proof}
+若 $d<B$，演算法每天租用後需求便結束，故 $\operatorname{cost}_A(d)=d=\OPT(d)$。若 $d\ge B$，演算法先付 $B-1$ 的租金，再付 $B$ 購買，故
+\[
+ \operatorname{cost}_A(d)=2B-1<2B=2\OPT(d).
+\]
+兩個 cases 涵蓋所有 $d\ge1$；分界必須使用同一個「第 $B$ 天是否仍有需求」資訊，不能在證明中讓 online algorithm 偷看結束日。
+\end{proof}
+
+這個 ratio 和第~\ref{ch:approx}章的 approximation ratio 外形相近，資訊基準卻不同。Approximation algorithm 與 OPT 通常都取得完整 instance，只是 ALG 受 polynomial-time 限制；online ALG 的限制則是決策時只看見 prefix，而 OPT 可看見完整序列。Competitive ratio 同時量化計算規則與資訊劣勢，不能被解讀成「解出完整 instance 後只差兩倍」。
+
+\section{Streaming：資料看過就消失時，space 也是假設}
+
+Packet stream $a_1,a_2,\ldots$ 持續到達；若只說每個 packet 可在 $O(1)$ time 處理，仍沒有回答能否保存全部 history。Streaming model（串流模型）會明示 passes、memory、update time、query time，以及允許的 approximation 或 failure probability。本節只處理最小但完整的問題：只用一個 item 的儲存空間，如何從目前看過的 $t$ 個 items 保留 uniform sample（均勻樣本）？
+
+Reservoir sampling 維持變數 $R_t$：令 $R_1=a_1$；第 $t\ge2$ 個 item 到達時，以機率 $1/t$ 令 $R_t=a_t$，否則保留 $R_t=R_{t-1}$。演算法不需要預先知道 stream 最終長度；這是 reservoir sampling 家族最小的單格版本\cite{vitter-reservoir}。
+
+\begin{theorem}[單格 reservoir 的 uniform invariant]
+處理完前 $t$ 個 items 後，對每個 $i\in\{1,\ldots,t\}$，
+\[
+ \Prb[R_t=a_i]=\frac1t.
+\]
+\end{theorem}
+\begin{proof}
+對 $t=1$，$R_1=a_1$，命題成立。假設處理完 $t-1$ 個 items 時，每個舊 item 被保存的機率為 $1/(t-1)$。新 item $a_t$ 以定義中的機率 $1/t$ 被保存。對任一舊 item $a_i$，它在第 $t$ 步後仍被保存，必須先位於 reservoir，且本輪沒有被替換；因此
+\[
+ \Prb[R_t=a_i]
+ =\Prb[R_{t-1}=a_i]\left(1-\frac1t\right)
+ =\frac1{t-1}\cdot\frac{t-1}{t}
+ =\frac1t.
+\]
+新舊 cases 均為 $1/t$，歸納完成。乘法使用的是本輪 replacement coin 在給定目前 reservoir 後依規則抽樣；若亂數來源受 state 或 item value 偏置，這一步便需重新證明。
+\end{proof}
+
+這個演算法以 $O(1)$ items 的 space 換得單一 uniform sample；它沒有回答 heavy hitters、distinct count 或 sliding window。那些問題需要不同 state 與 error guarantee。重點不是記住一串 sketch 名稱，而是先寫出
+\[
+ \text{passes}\;\leftrightarrow\;\text{space}\;\leftrightarrow\;
+ \text{accuracy}\;\leftrightarrow\;\text{failure probability}
+\]
+的交換關係。
+
+\section{Uncertain routing：估計值最佳不等於擾動下可靠}
+
+假設 source 到 destination 有兩條路徑。Route A 的 nominal delay 為 5 ms，但合理範圍是 $[4,12]$；Route B 的 nominal delay 為 7 ms，範圍是 $[7,8]$。只解 nominal model 會選 A；若決策必須在 delay 實現前固定，而研究目標是最小化最壞延遲，則 robust decision 會選 B。
+
+\begin{table}[htbp]
+\centering
+\caption{Nominal 與 worst-case 觀點可以選出不同路徑。}
+\begin{tabular}{@{}lccc@{}}
+\toprule
+Route & Nominal delay & Uncertainty interval & Worst-case delay \\
+\midrule
+A & 5 ms & $[4,12]$ ms & 12 ms \\
+B & 7 ms & $[7,8]$ ms & 8 ms \\
+\bottomrule
+\end{tabular}
+\label{tab:robust-routes}
+\end{table}
+
+令 $x$ 表示路徑決策、$d$ 表示尚未確定的 delays，$\mathcal U$ 是允許的 uncertainty set（不確定集合）。Nominal optimization 解單一估計 $\widehat d$：
+\[
+ \min_x f(x,\widehat d),
+\]
+而這個 worst-case robust model 解
+\[
+ \min_x\max_{d\in\mathcal U} f(x,d).
+\]
+兩式的差異不是 solver 精度，而是量詞順序與研究者願意防禦的情境。Robust optimization 文獻也把 nominal performance 與 conservatism 之間的代價視為必須顯式建模的 tradeoff\cite{bertsimas-sim}。
+
+\begin{definition}[Sensitivity、robustness 與 misspecification]
+Sensitivity analysis（敏感度分析）固定模型家族，研究參數改變後 optimal value、solution 或 active set 如何變；robust optimization（穩健最佳化）在決策前承認參數屬於集合或 ambiguity description，尋找對其中情境有明示保證的解；model misspecification（模型錯置）則表示 variables、constraints、objective 或 observation process 沒有忠實表達任務。前兩者不能修復第三者。
+\end{definition}
+
+Robust 不等於永遠較好。若 $\mathcal U$ 被設得極大，解可能為了不可信的極端情境犧牲大部分正常表現；若各 edge delays 實際相關，任意拼接每條 edge 的 worst case 也可能描述一個不可能同時發生的世界。Uncertainty set 本身是一項需要 data、domain knowledge 或 threat model 支持的建模主張。
+
+\section{Dynamic state：正確資訊也會過期}
+
+Online 強調未來尚未到達；dynamic setting（動態情境）強調原本已知的 instance 之後改變。例如
+\[
+ G_0\longrightarrow G_1\longrightarrow G_2\longrightarrow\cdots
+\]
+可能來自 link up/down、移動節點或 traffic drift。若每次變動都從頭重算，成本是完整 solve time；dynamic algorithm 則可能分開報 update time（吸收一次改動）、query time（回答目前問題）與 adaptation delay（決策品質追上新狀態所需時間）。
+
+Stale information 是 observation 與 dynamics 的交會：$\widehat w_e(t-\Delta_e)$ 在量測時可能完全正確，卻因環境已改變而不代表 $w_e(t)$。減少 measurement noise 不會讓 $\Delta_e$ 消失；提高 update frequency 又會增加 messages、energy 或 contention。下一章會把這個交換帶入真正跨 workers 運行的 heuristic search。
+
+\begin{misconception}
+「資料不完整」不能當成一個萬用 caveat。看不到未來、看不到遠端、參數估不準、objective 問錯，以及資料已過期，會破壞不同 proof line，也需要不同的 benchmark、measurement 或 protocol。若沒有指出缺的是哪一種資訊，就還沒有形成可檢查的研究問題。
+\end{misconception}
+
+\section{練習：把隱藏的神諭改寫成資訊模型}
+
+\begin{exercise}
+\exlevel{概念確認}
+對一個以 $G,w,C,f$ 為輸入的 routing algorithm，分別寫出 topology、weights、constraints 與 objective 的現實來源。每個物件至少列出一種 delay、noise、locality 或 manipulation failure。
+\end{exercise}
+
+\begin{exercise}
+\exlevel{標準推導}
+Capacity provisioning 中，考慮先租 $k-1$ 天、第 $k$ 天仍有需求便購買的 threshold，其中 $1\le k\le B$。分別處理 $d<k$、$k\le d<B$ 與 $d\ge B$，計算演算法及 offline OPT 的成本，導出最壞 ratio，並說明為何 $k=B$ 得到本章的 2-competitive bound。
+\end{exercise}
+
+\begin{exercise}
+\exlevel{標準推導}
+把 reservoir 擴成保存兩個不重複 items 的樣本：先保存 $a_1,a_2$；第 $t>2$ 個 item 到達時，以機率 $2/t$ 選擇納入；若納入，均勻替換兩格中的一格。以 $t=2$ 為 base case，證明處理完 $t$ 個 items 後，每個舊 item 被包含的機率為 $2/t$。只需證 inclusion probability，不需證所有二元素集合等機率。
+\end{exercise}
+
+\begin{exercise}
+\exlevel{錯誤診斷}
+某報告說：「sensor error 已從 5\% 降到 1\%，所以 routing controller 取得的是 current global state。」指出這句話混淆了哪三個 information dimensions，並為每個維度提出一個應記錄的量。
+\end{exercise}
+
+\begin{exercise}
+\exlevel{遷移挑戰}
+把\cref{tab:robust-routes}改成三條路徑，使 nominal、expected-value 與 worst-case robust decision 分別選出不同路徑。明示你假設的 probability distribution 與 uncertainty set；若無法使三者不同，說明是哪個數值關係阻止它。
+\end{exercise}
+
+\begin{exercise}
+\exlevel{陌生問題辨認}
+一個服務保存最近一小時的 packet summary，每五分鐘更新一次模型，但 deployment decision 每三十分鐘才重算。把可能的誤差分成 streaming memory、measurement noise、model misspecification 與 adaptation delay；指出增加 RAM 不能修正哪幾項。
+\end{exercise}
+
+\begin{exercise}
+\exlevel{研究反思}
+選一個熟悉的演算法輸入，回答「誰告訴演算法？」。拆掉其中一項 full-information assumption，先指出原 proof 或 guarantee 在哪一步失效，再把失效改寫成可量測、可比較的研究問題。
+\end{exercise}
+
+\section{費曼驗收：從一份完整 instance 找回被省略的世界}
+\begin{feynmancheck}
+畫出\cref{fig:observation-pipeline}，但把每個節點換成你自己的通訊或資安例子。接著不看\cref{tab:five-unknowns}，分別解釋 future unknown、global unknown、parameter unknown、model unknown 與 known-but-obsolete；每種都要給一個「增加計算速度仍無法解決」的理由。最後重建 online threshold 與 reservoir sampling 的核心證明，指出兩個公式各自支付了哪一項資訊或隨機假設。
+\end{feynmancheck}
+\begin{chapterrecap}
+\item Reality 與 model 之間還有 observation；solver 不能替研究者驗證資料如何被取得。
+\item Online、local、uncertain、misspecified 與 stale information 是不同缺口，不能以「資料不完整」一語帶過。
+\item Competitive ratio 的 offline OPT 看見未來；它和同一完整 instance 上的 approximation ratio 有不同資訊基準。
+\item Reservoir sampling 用 uniform replacement 與歸納不變量，以常數 space 維持 uniform sample。
+\item Robust decision 的保證相對 uncertainty set；集合本身仍需證據，過大也會造成保守成本。
+\item Dynamic analysis 問 update、query 與 adaptation，而不只從頭重算的 sequential time。
+\end{chapterrecap}
+
+\chapter[Parallel and Distributed Heuristic Search：跨 Workers 的搜尋]
+{Parallel and Distributed\\Heuristic Search\\當搜尋本身跨越多個 Workers}
+\label{app:parallel-search}
+\noindent\textbf{範圍聲明：}本章為課綱外 enrichment。它不教授 MPI、GPU kernels 或完整 distributed algorithms theory，而是拆解一項較基本的主張：「把 heuristic 放到多個 workers 上」究竟改變了時間、成功機率、資訊流與搜尋軌跡中的哪些部分。
+\chapterabstract{一個昂貴的頻道配置 simulator 使單 worker 每次 objective evaluation 都很慢。最初的回答是 independent multi-start；接著 workers 開始交換 incumbents，形成 island model；最後每個基地台只能依 local、delayed state 自行更新。沿這條路，work、span、speedup、communication 與 staleness 逐一出現，而同步更新甚至讓兩個各自合理的 local moves 形成無限振盪。本章最後分開 termination、convergence、stable-point quality、rate 與 fairness，並建立能支持 scalability claim 的實驗紀律。}
+\chapteraudience{先讀第~\ref{ch:meta}、\ref{ch:randomized}、\ref{ch:synthesis}~章與附錄~\ref{app:without-omniscience}。預設理解 search landscape、random seed 與基本圖模型，不預設 parallel programming。閱讀每個「更快」主張時，同時找出固定的 workload、worker 數、communication、synchronization 與輸出品質。}
+\begin{chaptermastery}
+\item 從一張 task graph 分開 total work、span、worker idle time 與 wall-clock time，並計算 speedup 與 efficiency。
+\item 使用 Amdahl's law 說明 serial fraction 為何限制極限 speedup，而不把它誤當實測時間的精確預測。
+\item 分開 independent multi-start 提高成功機率與真正縮短單次 computation path。
+\item 說明 island migration 如何同時帶來資訊擴散、同步成本與 diversity loss。
+\item 以兩節點頻道配置重演 synchronous oscillation，並分開 termination、convergence、quality、rate 與 fairness。
+\item 為 parallel/distributed heuristic 報告 work、wall-clock、messages、rounds、staleness、quality 與 scaling protocol。
+\end{chaptermastery}
+
+\section{一個昂貴 evaluation 如何拆成多個 workers？}
+
+沿用第~\ref{ch:meta}章的 interference graph $G=(V,E)$。每個基地台 $v\in V$ 選頻道 $c_v\in\mathcal C$，但 objective 不再只計算同頻邊數；它會把配置送進昂貴 simulator，估計 throughput、tail latency 與 interference，記為
+\[
+ f(c)=\operatorname{Simulate}(G,c,\xi),
+\]
+其中 $c=(c_v)_{v\in V}$ 是配置，$\xi$ 是固定 scenario 或抽樣到的 traffic scenario。若一次 simulation 需十分鐘，單 worker 的 local search
+\[
+ c_t\longrightarrow c'\longrightarrow f(c')
+ \longrightarrow\text{accept/reject}
+\]
+即使只做數百次 proposals 也可能太慢。
+
+「有 $p$ 個 workers」仍不足以定義 parallel algorithm。可以同時評估同一 state 的 $p$ 個 proposals、讓每個 worker 獨立跑完整搜尋、把一個 simulation 拆成 tasks，或讓各基地台直接成為決策節點。這些設計的 data dependency、可見 state 與合併規則不同，不能共用一句 $O(n/p)$。
+
+\section{Work 與 span：總共做多少，最長依賴鏈多長？}
+
+把一次 computation 表成 directed acyclic graph（有向無環 task graph）：node 是 task，edge 表示後一 task 必須等待前一 task。令 $W$ 是所有 task costs 的總和，稱 total work（總工作量）；令 $D$ 是任一路徑成本的最大值，稱 span 或 critical-path length（關鍵路徑長度）。若使用 $p\ge1$ 個相同 workers，wall-clock time 記為 $T_p$。
+
+\begin{definition}[Speedup 與 parallel efficiency]
+以同一 workload 的最佳單 worker 時間 $T_1$ 為基準，使用 $p$ 個 workers 的 speedup（加速比）與 parallel efficiency（平行效率）分別是
+\[
+ S_p=\frac{T_1}{T_p},
+ \qquad
+ E_p=\frac{S_p}{p}.
+\]
+這些量只有在 instance、stopping rule、output quality 與 platform convention 可比較時才有意義。
+\end{definition}
+
+\cref{fig:work-span-timeline}有四個各耗時 2 的 simulations；前兩個完成後才能聚合，後兩個也是如此，而最後 decision 必須等兩次聚合。即使 workers 無限多，依賴鏈仍不能被壓成零。
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[x=.92cm,y=.72cm,font=\small]
+\draw[cse arrow] (0,0)--(10.5,0) node[right]{time};
+\foreach \y/\lab in {3/W1,2/W2,1/W3}{
+  \node[left,font=\footnotesize] at (0,\y) {\lab};}
+\fill[CSEcool] (.3,2.65) rectangle (2.3,3.25);
+\draw[CSEblue] (.3,2.65) rectangle (2.3,3.25);
+\node at (1.3,2.95) {$e_1$};
+\fill[CSEwarm] (.3,1.65) rectangle (2.3,2.25);
+\draw[CSEorange] (.3,1.65) rectangle (2.3,2.25);
+\node at (1.3,1.95) {$e_2$};
+\fill[CSEcool] (3.0,2.65) rectangle (4.0,3.25);
+\draw[CSEgreen] (3.0,2.65) rectangle (4.0,3.25);
+\node at (3.5,2.95) {merge};
+\fill[CSEcool] (4.7,2.65) rectangle (6.7,3.25);
+\draw[CSEblue] (4.7,2.65) rectangle (6.7,3.25);
+\node at (5.7,2.95) {$e_3$};
+\fill[CSEwarm] (4.7,1.65) rectangle (6.7,2.25);
+\draw[CSEorange] (4.7,1.65) rectangle (6.7,2.25);
+\node at (5.7,1.95) {$e_4$};
+\fill[CSEcool] (7.4,2.65) rectangle (8.4,3.25);
+\draw[CSEgreen] (7.4,2.65) rectangle (8.4,3.25);
+\node at (7.9,2.95) {merge};
+\fill[CSEpaper] (9.1,2.65) rectangle (10.1,3.25);
+\draw[CSEink] (9.1,2.65) rectangle (10.1,3.25);
+\node at (9.6,2.95) {decide};
+\draw[CSEgray,densely dashed] (.3,.55)--(10.1,.55)
+  node[midway,below,font=\footnotesize]{critical dependency advances only after each merge};
+\draw[cse arrow] (2.3,2.95)--(3.0,2.95);
+\draw[cse arrow] (2.3,1.95)--(2.65,1.95)--(2.65,2.8)--(3.0,2.8);
+\draw[cse arrow] (4.0,2.95)--(4.7,2.95);
+\draw[cse arrow] (6.7,2.95)--(7.4,2.95);
+\draw[cse arrow] (6.7,1.95)--(7.05,1.95)--(7.05,2.8)--(7.4,2.8);
+\draw[cse arrow] (8.4,2.95)--(9.1,2.95);
+\end{tikzpicture}
+\caption{Fork--join timeline。空白 worker 時段不是免費加速；merge 與 decide 位於依賴鏈上，增加 workers 也無法移除。}
+\label{fig:work-span-timeline}
+\end{figure}
+
+\begin{theorem}[Work 與 span 的兩個不可突破下界]
+任何合法的 $p$-worker schedule 都滿足
+\[
+ T_p\ge \max\left\{\frac Wp,D\right\}.
+\]
+\end{theorem}
+\begin{proof}
+$p$ 個 workers 在時間 $T_p$ 內最多完成 $pT_p$ 單位工作，因此要完成總工作量 $W$ 必有 $pT_p\ge W$。另一方面，critical path 上每個 task 都依賴前一 task，彼此不能重疊；其總長 $D$ 必須完整出現在 schedule 中，故 $T_p\ge D$。兩個限制同時成立，取最大值得證。
+\end{proof}
+
+這是 lower bound，不保證一定存在達到它的 schedule。Communication、task granularity、memory contention 與 load imbalance 仍可能使實際 $T_p$ 更大。
+
+\section{Amdahl's law：serial fraction 形成 speedup 天花板}
+
+令 $\alpha\in[0,1]$ 是單 worker runtime 中不能平行化的比例；其餘 $1-\alpha$ 即使理想平均分給 $p$ 個 workers，仍需假設沒有額外 overhead。於是
+\[
+ T_p\ge T_1\left(\alpha+\frac{1-\alpha}{p}\right),
+\qquad
+ S_p\le\frac{1}{\alpha+(1-\alpha)/p}.
+\]
+這個 upper bound 稱 Amdahl's law\cite{amdahl1967}。當 $p\to\infty$ 時，$S_p\le1/\alpha$；只要 10\% 必須 serial，極限 speedup 就不超過 10。
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+ width=.82\textwidth,height=6.2cm,
+ xlabel={workers $p$},ylabel={Amdahl upper bound on $S_p$},
+ xmin=1,xmax=32,ymin=0,ymax=18,
+ xtick={1,4,8,16,24,32},ytick={0,5,10,15},
+ legend pos=north west]
+\addplot[cse series 1,domain=1:32,samples=32] {1/(0.05+0.95/x)};
+\addlegendentry{$\alpha=0.05$}
+\addplot[cse series 2,domain=1:32,samples=32] {1/(0.10+0.90/x)};
+\addlegendentry{$\alpha=0.10$}
+\addplot[cse series 3,domain=1:32,samples=32] {1/(0.25+0.75/x)};
+\addlegendentry{$\alpha=0.25$}
+\end{axis}
+\end{tikzpicture}
+\caption{Amdahl speedup saturation。顏色之外另以 marker 與線型區分；曲線是理想 upper bound，不是特定程式的 benchmark。}
+\label{fig:amdahl-curves}
+\end{figure}
+
+讀\cref{fig:amdahl-curves}時不要把曲線當成「加到某 worker 數一定得到的速度」。它假設 workload 固定、parallel fraction 可完美分割、沒有 communication 與 contention。實驗低於曲線不令人意外；若聲稱高於以同一定義估出的 bound，通常表示 $T_1$、workload、algorithm 或 quality 已改變。
+
+\section{Independent multi-start：成功機率提高不等於路徑縮短}
+
+最容易平行化的 heuristic 是讓 $p$ 個 workers 使用獨立 random seeds，各自執行相同 budget 的搜尋，最後回傳最佳 feasible solution。令事件 $G_i$ 表示 worker $i$ 在 budget 內達到預先定義的 target quality，並假設
+\[
+ \Prb[G_i]=q
+\]
+且 $G_1,\ldots,G_p$ mutually independent。則
+\[
+ \Prb\!\left[\bigcup_{i=1}^pG_i\right]
+ =1-\Prb\!\left[\bigcap_{i=1}^p\overline{G_i}\right]
+ =1-(1-q)^p.
+\]
+
+這個公式說「至少一次成功」的機率增加，不是某一條 search trajectory 被縮短為原來的 $1/p$。若 workers 使用相同 seed、共享會使軌跡快速同質化的 incumbent，或 instances 使成功事件高度相關，乘積 $(1-q)^p$ 便不成立。
+
+比較也必須固定 budget。用 $p$ workers 各跑一小時後挑最好，和單 worker 只跑一小時，不是 equal-compute comparison。可以報告相同總 core-hours 下的 quality、相同 wall-clock deadline 下的 quality，或 time-to-target；三者回答不同問題。
+
+\section{Island model：資訊交換會改變 diversity}
+
+Independent runs 完全不交流；island model（島嶼模型）則讓每個 worker 維持 local population 或 incumbent，偶爾把候選解 migration（遷移）到其他 workers。設計至少包含：migration topology、interval、migrant selection、replacement policy，以及 synchronous 或 asynchronous schedule。
+
+\cref{fig:island-migration}的三個 islands 初始位於不同 search basins。完全不交換保留 diversity，但好解無法擴散；過度頻繁地廣播 current best 會使所有 islands 快速複製同一族群；適度、稀疏的 migration 則試圖在 information sharing 與 independent exploration 間取得平衡。
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[font=\small,node distance=11mm and 18mm]
+\node[cse node] (a) {Island A\\local population};
+\node[cse node,right=of a] (b) {Island B\\local population};
+\node[cse node,right=of b] (c) {Island C\\local population};
+\draw[cse arrow,CSEblue] (a) to[bend left=14] node[above,font=\scriptsize]{selected migrant} (b);
+\draw[cse arrow,CSEgreen] (b) to[bend left=14] node[above,font=\scriptsize]{occasional} (c);
+\draw[cse arrow,CSEgray,densely dashed] (c) to[bend left=25] node[below,font=\scriptsize]{later feedback} (a);
+\node[below=10mm of b,align=center,font=\footnotesize] {Migration too rare: nearly independent runs.\\Migration too frequent: diversity collapses and synchronization dominates.};
+\end{tikzpicture}
+\caption{Island model 的 migration graph。箭頭不只是 data movement；收到的候選解會改變下一輪 selection 與 proposal distribution。}
+\label{fig:island-migration}
+\end{figure}
+
+Synchronous migration 在固定輪次設 barrier，容易推理卻會等待 straggler；asynchronous migration 不必全體等待，但 worker 收到的候選可能來自不同 search ages。因 migration 改變 proposal、selection 與 population composition，parallelism 改變的不只是 wall-clock，也可能改變最終解的分布。
+
+\section{Local-information channel assignment：每個節點只看鄰居}
+
+現在不再由中央搜尋器持有完整配置。每個基地台 $v$ 只知道鄰居集合 $N(v)$ 與最近收到的 neighbor channels。全域 conflict objective 是
+\[
+ F(c)=\sum_{\{u,v\}\in E}\mathbf 1[c_u=c_v],
+\]
+而節點 $v$ 能直接計算的 local conflict 是
+\[
+ \ell_v(a;c_{-v})
+ =\sum_{u\in N(v)}\mathbf 1[c_u=a],
+\]
+其中 $a\in\mathcal C$ 是 $v$ 正在考慮的頻道，$c_{-v}$ 表示其他節點目前配置。
+
+若只有 $v$ 更新，從 $c_v$ 改成 $a$ 對 $F$ 的變化正好由 incident edges 決定，因此 local improvement 也改善全域 conflict count。但若相鄰節點同時根據舊 state 更新，兩個 local comparisons 使用的 reference state 都已失效，這個單點論證不能相加。
+
+\section{Synchronous oscillation：兩個合理步驟如何互相抵消}
+
+假設只有頻道 1、2，兩個相鄰節點 A、B 初始都在頻道 1。它們同步觀察衝突，也都選擇另一頻道；下一輪再次做相同決定，便形成\cref{fig:synchronous-oscillation}的週期。
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[font=\small]
+\node[cse state] (a0) at (0,3.4) {A\\1};
+\node[cse state] (b0) at (2.5,3.4) {B\\1};
+\draw[CSEvermillion,line width=1.1pt] (a0)--node[above,font=\scriptsize]{conflict}(b0);
+\node[cse state] (a1) at (0,1.6) {A\\2};
+\node[cse state] (b1) at (2.5,1.6) {B\\2};
+\draw[CSEvermillion,line width=1.1pt] (a1)--node[above,font=\scriptsize]{conflict}(b1);
+\node[cse state] (a2) at (0,-.2) {A\\1};
+\node[cse state] (b2) at (2.5,-.2) {B\\1};
+\draw[CSEvermillion,line width=1.1pt] (a2)--node[above,font=\scriptsize]{conflict}(b2);
+\draw[cse arrow] (2.95,3.4)--(3.35,3.4)--(3.35,1.6)--(2.95,1.6);
+\node[anchor=west,align=left,font=\scriptsize] at (3.55,2.5)
+  {both read state $(1,1)$\\and switch to 2};
+\draw[cse arrow] (2.95,1.6)--(3.35,1.6)--(3.35,-.2)--(2.95,-.2);
+\node[anchor=west,align=left,font=\scriptsize] at (3.55,.7)
+  {both read state $(2,2)$\\and switch to 1};
+\draw[cse arrow,CSEblue] (-.45,-.2)--(-1.15,-.2)--(-1.15,3.4)--(-.45,3.4)
+  node[midway,left=3pt,font=\scriptsize]{repeat};
+\end{tikzpicture}
+\caption{Synchronous best-response oscillation。每個節點單獨看都像在改善，但 simultaneous joint move 再次製造衝突。局部改善證明只適用於「其他節點固定」；同步更新拆掉了該假設。}
+\label{fig:synchronous-oscillation}
+\end{figure}
+
+Sequential update 可讓 A 先換到 2、B 觀察新狀態後留在 1；random backoff 可能打破 symmetry；asynchronous execution 可避免 global barrier。但「可能」不是 convergence theorem。Random timers 是否獨立？Message delay 是否有界？Scheduler 是否最終啟動每個節點？節點讀到的 state 是否來自同一版本？少一項都可能讓直覺失效。
+
+\section{Termination、convergence 與 quality 是五筆不同的證明債}
+
+Distributed process 的 trajectory 是 joint states
+\[
+ c^{(0)},c^{(1)},c^{(2)},\ldots.
+\]
+看到 conflict count 偶爾下降，不能一次付清所有 proof obligations。\cref{tab:convergence-obligations}把最常混淆的五個問題分開。
+
+\begin{table}[htbp]
+\centering
+\caption{Distributed heuristic 的五種不同主張。}
+\begin{tabularx}{\textwidth}{@{}p{.20\textwidth}YY@{}}
+\toprule
+主張 & 必須證明什麼 & 單靠 local improvement 為何不足 \\
+\midrule
+Termination & 有限步後停止 & 同步或 stale updates 可能形成 cycle \\
+Convergence & state 或指定 potential 趨近極限 & state 可能不停變，甚至 potential 只非嚴格下降 \\
+Stable-point quality & 極限／停止點有多好 & 收斂可能只到很差的 local optimum \\
+Rate & 多快接近 target 或 stable set & 最終收斂不提供有限時間品質 \\
+Fairness & 每個持續可執行動作最終獲得機會 & Scheduler 可能永久餓死某 worker \\
+\bottomrule
+\end{tabularx}
+\label{tab:convergence-obligations}
+\end{table}
+
+若能找到 bounded-below potential $\Phi(c)$，並證明每個合法 update 都使 $\Phi$ 至少下降固定正量，便可能推出有限 termination；但同步更新例子正是指出「每個節點各自認為會下降」不等於 joint transition 真的下降。若只在 expectation 中下降，還要另外處理 stopping time、tail 或 almost-sure convergence，不能把 expected progress 直接改寫成每條 trajectory 都會停止。
+
+\begin{coreintuition}
+Local improvement $\not\Rightarrow$ global convergence；global convergence $\not\Rightarrow$ good quality；eventual convergence $\not\Rightarrow$ useful rate。每一個箭頭都需要額外 invariant、potential、scheduler 或 probabilistic assumption。
+\end{coreintuition}
+
+\section{Communication 與 scalability：資訊搬動也是成本}
+
+對跨 workers 的演算法，只報 arithmetic work 會漏掉資訊的位置。令 $M$ 表示 peak memory、$C$ 表示 transmitted bits 或 bytes 的 communication volume、$R$ 表示依序相依的 communication rounds。實際 wall-clock 可用下列 accounting identity 的精神拆解：
+\[
+ T_p
+ =T_{\mathrm{useful}}
+ +T_{\mathrm{communication}}
+ +T_{\mathrm{synchronization}}
+ +T_{\mathrm{imbalance}}
+ +T_{\mathrm{runtime\ overhead}}.
+\]
+各項可能重疊，因此實際 profiler convention 必須說明；這不是聲稱所有系統都能被唯一、精確地加總成五個可觀測數字。
+
+\begin{table}[htbp]
+\centering
+\caption{一項可稽核的 parallel/distributed search 報告至少要定位這些量。}
+\begin{tabularx}{\textwidth}{@{}p{.18\textwidth}p{.25\textwidth}Y@{}}
+\toprule
+量 & 典型記號 & 它回答的問題 \\
+\midrule
+Wall-clock & $T_p$ & 使用 $p$ workers 到停止實際等多久？ \\
+Work／span & $W,D$ & 做了多少總工作，哪條依賴鏈不能平行？ \\
+Memory & $M$ & 每 worker 與全系統保存多少 state？ \\
+Communication & $C,R$ & 傳多少 bits/messages，需幾個相依 rounds？ \\
+Freshness & $\Delta$ & 決策使用的 remote state 最舊可到多久？ \\
+Quality & gap／target & 更快是否犧牲 feasible value 或成功率？ \\
+\bottomrule
+\end{tabularx}
+\label{tab:parallel-metrics}
+\end{table}
+
+Strong scaling（強尺度擴展）固定 problem instance，增加 workers，觀察 time 是否下降；weak scaling（弱尺度擴展）讓 problem size 隨 workers 增加，使每 worker 的 nominal work 近似固定。兩者都應報告 instance、platform、worker placement、seeds、stopping rule、messages、wall-clock 與 quality。對 heuristic 尤其可使用 time-to-target（達到指定品質的時間）與 quality-at-time（固定 deadline 的品質），避免只報最快完成卻忽略答案變差。
+
+\begin{misconception}
+「8 workers 得到 7.6 倍 speedup」尚不是完整結論。必須追問 $T_1$ 是否使用相同演算法與品質、workload 是否固定、是否排除啟動與通訊、結果是單次最好值還是多 seeds 摘要，以及失敗或 timeout workers 如何計入。
+\end{misconception}
+
+\section{練習：從時間表追到 global trajectory}
+
+\begin{exercise}
+\exlevel{概念確認}
+某 task graph 的 total work 為 48 秒、span 為 11 秒。分別給出 $p=2,4,8$ 時 $T_p$ 的 work/span lower bound。若實測時間為 27、15、13 秒，計算各自的 $S_p$ 與 $E_p$，並指出哪個 overhead 可能在 $p=8$ 最明顯。
+\end{exercise}
+
+\begin{exercise}
+\exlevel{標準推導}
+從 serial fraction $\alpha$ 與 parallel fraction $1-\alpha$ 的時間分解，逐步導出 Amdahl speedup bound。令 $\alpha=0.08$，計算 $p=4,16$ 與 $p\to\infty$ 的 upper bound；不得直接引用結果而省略 $T_p$。
+\end{exercise}
+
+\begin{exercise}
+\exlevel{標準推導}
+一個獨立 run 在固定 budget 內達到 target 的機率為 $q=0.2$。計算 $p=1,4,8$ workers 至少一個成功的機率。若所有 workers 以機率 $r$ 從同一個 shared incumbent 重新開始，解釋為何原 independence proof 不能直接使用；不需在資訊不足時猜新公式。
+\end{exercise}
+
+\begin{exercise}
+\exlevel{狀態軌跡診斷}
+重演\cref{fig:synchronous-oscillation}六輪。接著分別加入 deterministic node ID priority 與 independent random backoff，寫出可能 trajectory；指出哪一個只展示「有一條成功軌跡」，哪一個足以成為 universal convergence proof，還缺哪些量詞。
+\end{exercise}
+
+\begin{exercise}
+\exlevel{錯誤診斷}
+有人提出 potential $\Phi(c)=F(c)$，並說「每個節點只接受降低 local conflict 的 move，所以演算法終止」。指出同步版本證明中的第一個不合法步驟；再寫出一個足以修補證明的 update restriction。
+\end{exercise}
+
+\begin{exercise}
+\exlevel{遷移挑戰}
+為三個 islands 設計 migration topology、interval、selection 與 replacement policy。分別預測 communication、straggler waiting 與 diversity；再設計一項量測，區分 improvement 來自更多總 evaluations 還是 migration 本身。
+\end{exercise}
+
+\begin{exercise}
+\exlevel{陌生問題辨認}
+一篇摘要只寫「在 8 GPUs 上得到 7.6x speedup，且找到更好的解」。依\cref{tab:parallel-metrics}與第~\ref{ch:synthesis}章的 evidence chain，列出至少六項缺少資訊，並寫出在現有證據下最多能支持的有限句子。
+\end{exercise}
+
+\begin{exercise}
+\exlevel{研究反思}
+拆掉 bounded-delay 或 fair-scheduler assumption。指出 termination、convergence、quality 與 rate 中哪幾項首先失去證明，再提出一個可以實驗觀察、但不冒充 theorem 的 fallback claim。
+\end{exercise}
+
+\section{費曼驗收：更多 workers 到底改變了哪一件事？}
+\begin{feynmancheck}
+先畫一張 task graph，向同學分開解釋 work、span、$T_p$、speedup 與 efficiency；再用同一張圖說明為何 Amdahl curve 是 bound 而非 benchmark。接著不看公式重建 independent multi-start 的成功機率，說明它為何不是 runtime speedup。最後重演兩節點同步振盪，依序回答 termination、convergence、stable-point quality、rate 與 fairness；若任何一項只能說「看起來會」，就指出還缺哪個 assumption 或 proof object。
+\end{feynmancheck}
+\begin{chapterrecap}
+\item Work 衡量總工作，span 衡量不可平行的依賴鏈；兩者都只給 lower bound，不自動產生理想 schedule。
+\item Amdahl's law 顯示 serial fraction 的速度天花板；communication、contention 與 imbalance 只會讓實測更複雜。
+\item Independent multi-start 提高至少一次成功的機率，不等於把一條搜尋軌跡縮短 $p$ 倍。
+\item Island migration 改變 information flow 與 search dynamics；同步有 barrier，非同步有 stale state。
+\item 單節點 local improvement 不能直接推得 synchronous joint update 改善，也不能一次推出 termination、convergence、quality 與 rate。
+\item Scalability claim 必須同時固定 workload、budget、quality 與 platform，並報告 communication 和 failures。
 \end{chapterrecap}
 
 \backmatter
@@ -5183,6 +5850,29 @@ George Klees, Andrew Ruef, Benji Cooper, Shiyi Wei, and Michael Hicks.
 \newblock Evaluating Fuzz Testing.
 \newblock In \emph{Proceedings of the 2018 ACM SIGSAC Conference on Computer and Communications Security}, pages 2123--2138, 2018.
 
+\bibitem{borodin-el-yaniv}
+Allan Borodin and Ran El-Yaniv.
+\newblock \emph{Online Computation and Competitive Analysis}.
+\newblock Cambridge University Press, 1998.
+
+\bibitem{vitter-reservoir}
+Jeffrey Scott Vitter.
+\newblock Random Sampling with a Reservoir.
+\newblock \emph{ACM Transactions on Mathematical Software}, 11(1):37--57, 1985.
+\newblock \url{https://doi.org/10.1145/3147.3165}
+
+\bibitem{bertsimas-sim}
+Dimitris Bertsimas and Melvyn Sim.
+\newblock The Price of Robustness.
+\newblock \emph{Operations Research}, 52(1):35--53, 2004.
+\newblock \url{https://doi.org/10.1287/opre.1030.0065}
+
+\bibitem{amdahl1967}
+Gene M. Amdahl.
+\newblock Validity of the Single Processor Approach to Achieving Large Scale Computing Capabilities.
+\newblock In \emph{Proceedings of the AFIPS Spring Joint Computer Conference}, pages 483--485, 1967.
+\newblock \url{https://doi.org/10.1145/1465482.1465560}
+
 \bibitem{syllabus}
 國立中山大學資訊工程學系。
 \newblock 「高等通訊與資安演算法」官方課程教學大綱，課號 CSE543，西元 2026 年秋季學期。
@@ -5220,6 +5910,8 @@ George Klees, Andrew Ruef, Benji Cooper, Shiyi Wei, and Michael Hicks.
 \item 將 security claim 寫成 game、advantage 與 reduction，並以 hop ledger 記錄每一步的 assumption 或 bad event。
 \item 對 distributed protocol 分開 safety 與 liveness，以 quorum intersection 加 honest-state invariant 證明不能形成衝突 certificates。
 \item 把 fuzzing 映射為 representation、mutation kernel、feedback objective、selection、stopping 與可重現 evaluation protocol。
+\item 對一個完整 instance 追問 information source，分開 future、global、parameter、model 與 stale-state limitations，並重建 online threshold 與 reservoir invariant。
+\item 對 parallel／distributed heuristic 分開 work、span、speedup、communication、termination、convergence 與 stable-point quality，不以 worker 數代替證明或公平實驗。
 \end{enumerate}
 
 \chapter*{核心小題提示與自我校正}
@@ -5392,6 +6084,7 @@ Advantage & 優勢；安全遊戲中，攻擊成功率相對基準猜測的超�
 AEAD & authenticated encryption with associated data，帶附加資料的認證加密；保護 plaintext 的機密性與完整性，並驗證未加密的 associated data。它不自動提供 anti-replay。 \\
 Active set & 作用中限制集合；在候選解處取等號、實際形成局部邊界的限制。 \\
 Adversary & 對手；在安全定義允許的介面與資源內，嘗試觸發勝利事件的任意演算法。 \\
+Amdahl's law & 將單 worker runtime 分成 serial 與 ideally parallel fractions，給出固定 workload 下的 speedup upper bound；不是實際 benchmark 的精確預測。 \\
 API & application programming interface，應用程式介面；在安全遊戲中指對手可呼叫的功能與查詢。 \\
 Approximation algorithm & 近似演算法；在 polynomial time 內輸出 feasible solution，並對每個合法 instance 提供明示的 worst-case objective guarantee。 \\
 Approximation ratio & 近似比；把演算法 objective value 與 optimum 依 minimization／maximization 方向正規化後的比例，慣例上至少為 1。 \\
@@ -5416,6 +6109,9 @@ Cut certificate & 割證據；network flow 中以 $s$--$t$ cut capacity 對任�
 Claim--evidence discipline & 主張—證據紀律；先明示研究主張，再逐層檢查模型、演算法、品質界與實驗是否真的支持該主張。 \\
 CLRS & Cormen、Leiserson、Rivest、Stein 四位作者姓氏縮寫，通常指《Introduction to Algorithms》。 \\
 Complementary slackness & 互補鬆弛；原始與對偶最優解之間，限制鬆弛量與相應對偶變數乘積為零的條件。 \\
+Communication round & 通訊輪次；一組可並行 messages 完成後，下一組依賴它們的 messages 才能開始。Round complexity 與總 message／bit volume 回答不同問題。 \\
+Competitive ratio & 競爭比；online algorithm 的成本相對可看見完整未來之 offline OPT 的最壞比例。外形近似 approximation ratio，但雙方資訊能力不同。 \\
+Convergence & 收斂；joint state 或指定量趨近 stable point／set。它不自動表示有限時間 termination、良好品質或快速 rate。 \\
 Conditional expectation & 條件期望；已知部分隨機選擇結果後的期望值，可用來逐步固定選擇並進行去隨機化。 \\
 Convex optimization & 凸最佳化；在凸可行集合上最小化凸函數，局部最小點亦為全域最小點。 \\
 Covariance & 共變異數；衡量兩隨機變數共同偏離各自平均值的方向與幅度，為零不必然代表獨立。 \\
@@ -5435,6 +6131,7 @@ Derandomization & 去隨機化；把 randomized existence proof 或 algorithm �
 Differential fuzzing & 差異模糊測試；把同一輸入交給多個 implementations 或 versions，以不一致作為可疑訊號；仍需外部規格判斷哪一方錯。 \\
 Digital signature & 數位簽章；signer 用 secret key 產生 signature，任何持有 public key 者可驗證。它提供的 authenticity 不會自動阻止合法舊訊息 replay。 \\
 DP & dynamic programming，動態規劃；保存重疊子問題的答案並組合成原問題解。 \\
+Dynamic algorithm & 動態演算法；input 持續更新時維護答案，常分開分析 update time、query time 與 adaptation delay，而非每次只從頭重算。 \\
 Evidence chain & 證據鏈；從研究主張依序追查 model validity、演算法正確性、解品質證據、實驗協定與可重現報告。 \\
 Error amplification & 錯誤率放大／成功率放大；以獨立重複和適合的 aggregation rule 降低 randomized algorithm 的 failure probability。 \\
 Equivocation & 矛盾陳述；同一 process 在同一 protocol position 對不同接收者提出不相容訊息。Signature 可留下歸責證據，但不會阻止已被攻陷的 signer 說謊。 \\
@@ -5461,6 +6158,7 @@ Hash function & 雜湊函數；把任意長輸入映射為固定長 digest。Col
 IND-CPA & indistinguishability under chosen-plaintext attack，選擇明文攻擊下不可區分。 \\
 Indicator random variable & 指示隨機變數；事件成立時取 1，否則取 0，其期望等於事件機率。 \\
 Incumbent／best-so-far & 目前最佳可行解；搜尋尚未結束時已找到且可立即採用的解，其值可提供 primal bound。 \\
+Information model & 資訊模型；明示哪些 agents 在何時能存取哪些資料、觀察的 noise／delay，以及 query、storage 與 communication 成本。 \\
 Integrality gap & 整數差距；整數模型最優值相對其放寬最優值的最壞比例，衡量該放寬作為界的先天鬆緊。 \\
 IP & integer programming，整數規劃；部分或全部決策變數受整數限制。 \\
 KKT & Karush--Kuhn--Tucker 條件；受限制可微最佳化的一組一階條件。 \\
@@ -5498,8 +6196,10 @@ NP-hard & 至少和所有 NP 問題一樣難；不要求問題本身屬於 NP。
 Optimality gap & 最優差距；可行解值與已知界之間的相對或絕對差距。 \\
 Optimality certificate & 最優性的可驗證證據；例如 primal feasible value 與 dual bound 相等，或 branch-and-bound 已關閉所有仍可能改善 incumbent 的節點。 \\
 Oracle & 查詢介面；安全遊戲提供給 adversary 的受規則限制功能，不表示現實中一定存在神諭。 \\
+Online／offline algorithm & 線上／離線演算法；online 決策只看見目前 prefix，offline benchmark 可看見完整輸入序列；決策能否撤回也必須明示。 \\
 P & 可由確定型演算法在多項式時間內判定的決定問題類別。 \\
 Paired difference & 配對差；在相同 instance、budget 與預先指定 matched repetition 下，兩方法結果之差。相同 seed 數字本身不保證亂數事件可配對；只有 common random numbers 的設計能進一步控制部分亂數波動。 \\
+Parallel efficiency & 平行效率 $E_p=S_p/p$；衡量 observed speedup 相對理想 $p$ 倍加速的比例，必須建立在可比較 workload 與品質上。 \\
 Pairwise／mutual independence & 兩兩獨立／互相獨立；前者只要求每一對獨立，後者要求任意子集合的聯合機率可分解。 \\
 Partial synchrony & 部分同步；通常指某個未知時刻後，message delay 或 process speed 受到上界控制的時間模型，常用來證明最終 liveness。 \\
 Performance ratio & 近似分析中依問題方向正規化的 objective ratio；minimization 用 algorithm cost 除以 optimum，maximization 則用 optimum 除以 algorithm value。 \\
@@ -5521,12 +6221,14 @@ Random tape & 隨機帶；把一次隨機演算法使用的全部亂數視為字
 Random variable & 隨機變數；從 sample space 到數值集合的函數，隨機性來自抽樣 outcome，而非函數規則含糊。 \\
 Real--ideal & 真實—理想證明觀；比較真實協定與理想功能加模擬器所產生的觀測分布。 \\
 Reduction & 歸約；把一個問題的求解能力轉換為另一個問題的求解能力。 \\
+Reservoir sampling & 蓄水池抽樣；不知道 stream 最終長度時，以固定記憶體維持均勻樣本。單格版本在第 $t$ 個 item 到達時以 $1/t$ 機率替換。 \\
 Replay／rollback & 重放／回滾；replay 重新送出先前有效訊息，rollback 使系統接受較舊 state 或 version。兩者可能不違反 signature authenticity，卻破壞 freshness。 \\
 Relaxation & 放寬；移除或削弱限制以擴大可行集合。其最優值可為原問題提供界，但放寬解未必能直接部署。 \\
 Residual & 殘差；把候選解代回限制後量得的違反程度，例如 $a_i^\top x-b_i$。應以原始工程單位檢查。 \\
 Right-hand side (RHS) & 限制式右側的 data，例如 $Ax\le b$ 中的 capacity vector $b$；改變 RHS 會移動 feasible-region boundary。 \\
 Resource augmentation & 資源增補分析；允許演算法使用比 benchmark solution 更多的容量、機器或時間，再明示比較其品質與資源倍率。 \\
 Rounding & 捨入；把分數解轉成離散可行解，並分析可行性與成本損失。 \\
+Robust optimization & 穩健最佳化；在決策前承認參數落於 uncertainty set，尋找對該集合具有明示 worst-case 或其他穩健保證的解；集合本身仍是建模主張。 \\
 Safety／liveness & 安全性／活性；前者要求壞事不發生，後者要求好事終會發生。 \\
 Sanitizer & 動態檢測器；在執行時把 memory-safety violation、undefined behavior 等轉成較清楚的 failure signal。它是 oracle 的一部分，也有 blind spots。 \\
 Search landscape & 搜尋地景；由 search space $S$、neighborhood mapping $N$ 與 objective function $f$ 組成的三元組 $(S,N,f)$。只改 representation 或 neighborhood，就可能改變可達性、local optima 與 basins。 \\
@@ -5539,11 +6241,16 @@ Slack & 限制尚未用完的餘量；對 $a_i^\top x\le b_i$ 為 $b_i-a_i^\top 
 Simulator & 模擬器；real--ideal 證明中只使用理想介面所允許資訊，重建 adversary 視野的證明演算法。 \\
 Simulated Annealing (SA) & 模擬退火；以 temperature 控制較差 move 的接受機率。冶金類比用來建立 idea，正式方法仍由 proposal、acceptance 與 cooling schedule 定義。 \\
 Stackelberg game & 史塔克伯格賽局；leader 先承諾 strategy，follower 觀察後選 best response。安全配置中 defender 常扮演 leader。 \\
+Span／critical path & Task dependency graph 的最長相依路徑成本；即使 workers 無限多，span 仍是 parallel wall-clock 的下界。 \\
+Speedup & 加速比 $S_p=T_1/T_p$；比較相同 workload 與輸出要求下，單 worker 和 $p$ workers 的 wall-clock time。 \\
+Staleness & 陳舊程度；decision 使用的 observation 相對 current state 落後多少時間或版本。資料可在量測當下正確，卻在使用時已過期。 \\
 Stateful fuzzing & 有狀態模糊測試；以 message sequence 與 protocol state 為搜尋對象，測試單一 packet 無法觸及的 session、replay 與狀態轉移。 \\
+Streaming algorithm & 串流演算法；在有限 passes 與 memory 下處理持續到達的資料，通常以 space、update/query time、accuracy 與 failure probability 共同描述。 \\
 Stationarity & 駐點條件；KKT 中目標梯度與作用中限制梯度的加權和為零。 \\
 Stochastic domination & 隨機支配；一個 random variable 的 upper-tail probabilities 在所有 thresholds 上不超過另一個 variable，可用後者控制 worst-case tail。 \\
 Strong／weak NP-hardness & 強／弱 NP-hardness；區分問題的困難性在數值改採一進位或受多項式界限後是否仍保留。 \\
 Strong／weak duality & 強／弱對偶；weak duality 排定任意 primal、dual feasible values 的界方向，strong duality 在適當條件下保證兩邊 optimal values 相等。 \\
+Strong／weak scaling & 強／弱尺度擴展；前者固定 problem size 增加 workers，後者隨 workers 增加 problem size，使每 worker nominal work 近似固定。 \\
 Surrogate objective & 代理目標；真正目標難以直接觀察時使用的可計算替代訊號，例如 fuzzing coverage。 \\
 Survivorship bias & 倖存者偏差；只分析成功完成或表現較好的 runs，因而系統性忽略 timeout、失敗與被淘汰樣本。 \\
 Tabu search & 把近期 move attributes 存入短期記憶並暫時禁用，以改變局部可達性及抑制循環的搜尋方法。 \\
@@ -5557,6 +6264,7 @@ Trust boundary & 信任邊界；資料或控制跨越後必須重新驗證的界
 Universal hashing & 通用雜湊；從函數族隨機選取 hash function，使任意固定不同鍵的碰撞機率受控。 \\
 Upper bound (UB) & 上界；未知值不可能超過的合法界。Maximization branch-and-bound 中，LP relaxation 為每個 subtree 提供 UB。 \\
 With high probability (w.h.p.) & 以高機率；asymptotic algorithms 中通常指 failure probability 隨 input size 至少呈 polynomial decay，而不是任意固定的高成功百分比。 \\
+Work & Total work；task graph 中所有 operation costs 的總和，因此 $p$ workers 的 wall-clock 至少為 $W/p$。 \\
 Variance & 變異數 $\E[(X-\E X)^2]$；衡量 random variable 對 mean 的平方偏離，與 expectation 回答不同問題。 \\
 Vertex Cover & 頂點覆蓋；選取頂點，使每條邊至少有一個端點被選。 \\
 Verifier & 驗證器；接收 instance $x$ 與 candidate $y$，在指定時間界內檢查 $y$ 是否構成合法 certificate。 \\
@@ -5581,10 +6289,12 @@ $a_i^\top x\le b_i$ & 第 $i$ 條線性限制；其 slack 為 $b_i-a_i^\top x$�
 $A(x;r)$ & 隨機演算法在固定輸入 $x$ 與 random tape $r$ 下的輸出；固定兩者後執行是確定的。 \\
 $Ax\le b$ & 標準 LP 的限制；$A$ 是限制係數矩陣，$x$ 是決策向量，$b$ 是限制右側向量。 \\
 $A\le_p B$ & 問題 $A$ 可在多項式時間內 many-one reduction 到問題 $B$。 \\
+$\alpha$（附錄 I） & Amdahl model 中無法平行化的 serial fraction；與第 5 章 objective coefficient 同字母，但由局部定義區分。 \\
 $B$／$c_v$／$w_e$ & 第 8 章監控佈署模型的總預算／選擇節點 $v$ 的成本／監控邊 $e$ 的效益權重。 \\
 $C\subseteq V$ & 頂點集合 $V$ 的子集合；在 Vertex Cover 章通常表示選出的覆蓋。 \\
 $C_A$／$C_{\max}$ & 第 6 章排程案例中，List Scheduling 產生的 makespan／一般 schedule 的最大完工時間。 \\
 $D_{I,s}$ & 在同一實例 $I$ 與 random seed $s$ 下，方法 $A$ 與 $B$ 的 paired difference；第 8 章採 $A(I,s)-B(I,s)$。 \\
+$D$／$W$（附錄 I） & Parallel task graph 的 span／total work；任何 $p$-worker schedule 滿足 $T_p\ge\max\{W/p,D\}$。 \\
 $d[u]$ & 最短路演算法對頂點 $u$ 保存的暫定距離。 \\
 $E$／$V$ & 圖的邊集合／頂點集合。 \\
 $\E[X]$ & 隨機變數 $X$ 的期望值。 \\
@@ -5619,6 +6329,7 @@ $\Prb[A]$ & 事件 $A$ 發生的機率。 \\
 $\rho_A(I)$ & 第 6 章中演算法 $A$ 在 instance $I$ 的 performance ratio；minimization 為 $\mathrm{cost}(A(I))/\OPT(I)$，maximization 為 $\OPT(I)/\mathrm{value}(A(I))$。 \\
 $\sup_{x\in S}f(x)$ & $f(x)$ 在集合 $S$ 上的 supremum（最小上界）；若最大值存在便等於 maximum，若可無界增加則為 $+\infty$。 \\
 $R_t$ & Set Cover 第 $t$ 輪尚未覆蓋的元素集合；只計入 $S\cap R_t$ 中的新元素。 \\
+$R_t$（附錄 H） & 單格 reservoir sampling 處理完前 $t$ 個 stream items 後保存的 sample；與 Set Cover 的未覆蓋集合由章節區分。 \\
 $\mathcal R$ & 第 7 章中 random tape $r$ 的抽樣分布。 \\
 $2^S$ & $S$ 的冪集，即 $S$ 所有子集合的集合。 \\
 $\bits^*$ & 所有有限二進位字串。 \\
@@ -5630,6 +6341,8 @@ $\mu$ & 隨機變數總和的期望值。 \\
 $Q_t$／$Q_L$／$Q_R$ & 條件期望去隨機化中，目前條件期望／把下一選擇固定為左或右後的條件期望。 \\
 $Q(\cdot\mid x)$ & 第 1 章從目前解 $x$ 抽取 proposed neighbor 的條件分布；不應和第 7 章的條件期望記號 $Q_t$ 混淆。 \\
 $T_t$ & Simulated Annealing 在第 $t$ 輪的 temperature；它控制較差 move 的 acceptance probability。 \\
+$T_p$／$S_p$／$E_p$ & 附錄 I 使用 $p$ workers 的 wall-clock time／相對 $T_1$ 的 speedup／parallel efficiency。 \\
+$\mathcal U$ & 附錄 H robust optimization 中允許參數情境組成的 uncertainty set。 \\
 $\tau(G)$ & 圖 $G$ 的 minimum vertex cover size，即最佳化版 Vertex Cover 的最優值。 \\
 $\nabla f(x)$ & 目標函數 $f$ 在 $x$ 的梯度向量。 \\
 $\operatorname{Var}(X)$ & 隨機變數 $X$ 的變異數。 \\

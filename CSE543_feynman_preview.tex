@@ -34,11 +34,12 @@
 % undergraduate could reasonably have forgotten. Core chapters should offer a
 % foundation check, a worked derivation, and exercises at concept, derivation,
 % and reflection levels; hints must diagnose reasoning rather than replace it.
-% Bilingual bridge: introduce technical vocabulary as Chinese (English), then
-% retain the English term at later high-value recall points such as captions,
-% recaps, and the glossary. Chinese accelerates comprehension; English preserves
-% recognition of lecture language and papers. Do not translate a standard term
-% so aggressively that the reader can no longer recover its English name.
+% Bilingual bridge: use the established English term as the visible anchor when
+% that is what lectures, papers, APIs, and software use; add Chinese only as a
+% parenthetical explanation. Lead with Chinese only for a genuinely stable,
+% immediately recognizable translation such as 可行域 (feasible region). Never
+% coin a literal Chinese substitute that forces the reader to translate it back
+% into English; in particular, always retain the term oracle.
 % Nested Feynman loops: the chapter-level template is not enough. Each concept
 % with a genuine inferential jump should locally answer Why (what failure calls
 % for it), How (a state-by-state mechanism), Formal claim, and Boundary (a
@@ -139,6 +140,7 @@ See the assumption. Break the assumption. Find the question.
 
 \paragraph{中英文術語橋接。}
 術語第一次出現時一定中英文相接，但不機械規定中文永遠在前。已有自然且穩定譯名者採「中文（English）」，例如可行域（feasible region）；課堂、程式庫與論文慣用英文，或中文單獨出現會失去來源語境者，採「English（中文解釋）」並在後文保留英文，例如 Simulated Annealing（模擬退火）、certificate（可供驗證的短證據）、bound、seed 與 incumbent。中文負責加速理解，英文負責聽課、搜尋與讀 paper 時的即時辨識；翻譯不得切斷這座橋。
+特別地，oracle 一律保留原文；第一次出現時可寫成 oracle（受規則限制的查詢介面），不使用容易讓人誤以為是另一個概念的直譯名稱。
 
 \paragraph{閱讀載體與筆記。}
 本書採單頁、連續章節設計，適合平板上下滑動，章節之間不配置筆記空白頁。需要手寫時，可使用閱讀器旁註，或另以 Cornell notes（康乃爾筆記法）的提示欄、主筆記區與摘要區整理一節的問題、推導與結論。
@@ -5230,7 +5232,7 @@ Coverage 高不等於 bug 多，更不等於安全。Fuzzer 沒找到漏洞，�
 其中 $\Delta_e\ge0$ 是 observation age（觀察延遲），$\varepsilon_e$ 是 measurement error（量測誤差）。即使 $\varepsilon_e=0$，當 $\Delta_e>0$ 時資料也可能曾經正確、現在卻已過期；把兩者都叫「不準」會掩蓋不同的修正方法。
 
 \begin{coreintuition}
-演算法的保證永遠相對於它知道什麼、何時知道、能保存與傳送多少，以及世界在計算期間是否改變。先問「哪份資訊被當成免費神諭？」常比先問「要用哪個演算法？」更接近研究問題。
+演算法的保證永遠相對於它知道什麼、何時知道、能保存與傳送多少，以及世界在計算期間是否改變。先問「哪份資訊被當成免費 oracle（查詢介面）？」常比先問「要用哪個演算法？」更接近研究問題。
 \end{coreintuition}
 
 \section{五種「不知道」破壞不同假設}
@@ -5387,7 +5389,7 @@ Stale information 是 observation 與 dynamics 的交會：$\widehat w_e(t-\Delt
 「資料不完整」不能當成一個萬用 caveat。看不到未來、看不到遠端、參數估不準、objective 問錯，以及資料已過期，會破壞不同 proof line，也需要不同的 benchmark、measurement 或 protocol。若沒有指出缺的是哪一種資訊，就還沒有形成可檢查的研究問題。
 \end{misconception}
 
-\section{練習：把隱藏的神諭改寫成資訊模型}
+\section{練習：把隱藏的 oracle assumption 明寫成 information model}
 
 \begin{exercise}
 \exlevel{概念確認}
@@ -6195,7 +6197,7 @@ NP-complete & 同時屬於 NP 且為 NP-hard 的決定問題。 \\
 NP-hard & 至少和所有 NP 問題一樣難；不要求問題本身屬於 NP。 \\
 Optimality gap & 最優差距；可行解值與已知界之間的相對或絕對差距。 \\
 Optimality certificate & 最優性的可驗證證據；例如 primal feasible value 與 dual bound 相等，或 branch-and-bound 已關閉所有仍可能改善 incumbent 的節點。 \\
-Oracle & 查詢介面；安全遊戲提供給 adversary 的受規則限制功能，不表示現實中一定存在神諭。 \\
+Oracle & 受規則限制的查詢介面；例如安全遊戲允許 adversary 呼叫的 encryption、signing 或 decryption interface。使用 oracle 是在精確規定能力，不表示現實中存在無限制的答案來源。 \\
 Online／offline algorithm & 線上／離線演算法；online 決策只看見目前 prefix，offline benchmark 可看見完整輸入序列；決策能否撤回也必須明示。 \\
 P & 可由確定型演算法在多項式時間內判定的決定問題類別。 \\
 Paired difference & 配對差；在相同 instance、budget 與預先指定 matched repetition 下，兩方法結果之差。相同 seed 數字本身不保證亂數事件可配對；只有 common random numbers 的設計能進一步控制部分亂數波動。 \\

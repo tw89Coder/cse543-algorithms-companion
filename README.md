@@ -52,5 +52,22 @@ Release candidate, dated September 2026. The compiled edition currently has
 
 ## License
 
-No reuse license has been selected yet. Until one is added, please do not
-assume permission to redistribute or modify the material.
+Copyright © 2026 YHL.
+
+- The textbook content—including `CSE543_feynman_preview.tex`, the compiled
+  PDF, original figures, tables, and exercises—is licensed under the
+  [Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International
+  License](https://creativecommons.org/licenses/by-nc-sa/4.0/)
+  (**CC BY-NC-SA 4.0**), except where otherwise noted.
+- The standalone typography and build code in `style/cse543book.sty`, and any
+  future helper scripts explicitly identified as code, are licensed under the
+  MIT License.
+
+When redistributing or adapting the textbook, give appropriate credit, link to
+the CC license, indicate whether changes were made, and distribute adaptations
+under the same license. The course title, course code, and public syllabus
+information are used only for identification and curriculum alignment; no
+endorsement by the university, department, or instructor is implied.
+
+See [LICENSE.md](LICENSE.md) for scope and attribution guidance and
+[LICENSE-CODE](LICENSE-CODE) for the code license.

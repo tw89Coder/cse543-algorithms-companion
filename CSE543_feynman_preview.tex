@@ -4133,18 +4133,52 @@ Partition 的數值大小與難度緊密相關，存在偽多項式 DP；3-Parti
 Cryptographic primitive 只對它的介面與 security definition 負責。系統把一個有效 primitive 放進錯誤的 state machine，仍可能產生完整而可重現的攻擊。
 \end{coreintuition}
 
-\section{Asset、goal、threat 與 vulnerability}
-資安敘述至少要分開五個角色。
+\section{從 Asset 到 risk：分開保護對象、成因與後果}
+資安敘述必須把不同層次的概念分開。Asset、security goal、threat、adversary、vulnerability、attack、impact 與 risk 並不是同一件事的八種說法：它們分別描述保護對象、應維持的性質、危險情境、行動者、可被利用的條件、實際行動、造成的後果，以及決策者對整體嚴重性的判斷。固定背一個數字沒有幫助；真正的檢查是每個名詞是否回答了不同問題。
 
-\begin{definition}[Asset、security goal 與 threat]
+\begin{definition}[Asset、security goal、threat 與 adversary]
 Asset（資產）是系統要保護且損失會造成影響的對象，例如 signing key、更新套件、裝置可用性或研究資料。Security goal（安全目標）是資產應維持的性質。Threat（威脅）是可能破壞目標的情境或行為來源；adversary（對手）則是模型中主動選擇行動的實體或演算法。
 \end{definition}
 
-\begin{definition}[Vulnerability、attack 與 risk]
-Vulnerability（弱點）是使威脅得以實現的系統條件；attack（攻擊）是利用弱點促成壞事的具體行動序列。Risk（風險）通常還涉及發生可能性與影響，因此不能只由「有沒有漏洞」單一布林值取代。
+\begin{definition}[Vulnerability、attack、impact 與 risk]
+Vulnerability（弱點）是使威脅得以實現的系統條件；attack（攻擊）是利用弱點促成壞事的具體行動序列；impact（影響）是壞事發生後對資產、使用者或組織造成的後果。Risk（風險）是決策情境下對攻擊可行性、發生可能性、impact 與既有 controls 等因素的綜合評估，不能只由「有沒有漏洞」單一布林值取代，也不應在未定義尺度時武斷寫成一條精確乘法公式。
 \end{definition}
 
-在 running example 中，更新完整性是 goal，遺失 persistent version state（持久版本狀態）是 vulnerability，錄製並重送版本 12 是 attack，而裝置重新暴露已知漏洞是 impact。若只說「replay 是 threat」，便會把原因、行動與後果混成同一層。
+這些概念形成兩條互補的問題鏈：
+\[
+ \text{Asset}\xrightarrow{\text{what must hold}}\text{Security goal},
+\]
+以及
+\[
+ \begin{aligned}
+  \text{Threat context}+\text{Adversary capability}
+    &\longrightarrow \text{exploit a Vulnerability}\longrightarrow\text{Attack},\\
+  \text{Attack}&\longrightarrow\text{Impact}\longrightarrow\text{Risk assessment}.
+ \end{aligned}
+\]
+第一條先定義「保護什麼」；第二條才追蹤壞事如何成為可能、如何發生，以及為何值得處理。這不是聲稱所有 security frameworks 都必須採用同一 taxonomy，而是避免把 actor、cause、mechanism、event 與 consequence 混為一談。
+
+\begin{table}[htbp]
+\centering
+\caption{Security concepts 各自回答的問題，以及 rollback running example 中的對應。}
+\label{tab:security-concept-layers}
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{.17\textwidth}>{\raggedright\arraybackslash}p{.27\textwidth}Y@{}}
+\toprule
+Concept & 它回答的問題 & Rollback example \\
+\midrule
+Asset & 我們在保護什麼？ & 裝置目前可信的 firmware state \\
+Security goal & Asset 必須維持什麼性質？ & 不接受低於已確認版本的更新 \\
+Threat & 什麼情境可能破壞 goal？ & 舊而合法的更新封包可被重新送達 \\
+Adversary & 誰主動選擇哪些行動？ & 能 observe、delay 與 replay 的 network attacker \\
+Vulnerability & 哪個系統條件使攻擊成為可能？ & 缺乏可靠的 persistent version state \\
+Attack & 對手實際執行什麼 sequence？ & 重送版本 12 的合法 signed package \\
+Impact & 壞事發生後造成什麼後果？ & 裝置回退到含已知漏洞的 firmware \\
+Risk & 綜合情境後，我們應多在意它？ & 依攻擊可行性、暴露程度與後果評估修補優先序 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+因此，「replay 是 threat」仍不夠精確：replay 可以是 adversary capability，也可以指 attack action；threat 則是允許舊合法訊息再次抵達並破壞 freshness 的危險情境。分類的目的不是爭奪唯一正確名詞，而是讓後續的模型、證據與防護措施各自接到正確問題。
 
 \begin{figure}[htbp]
 \centering
@@ -4251,7 +4285,7 @@ Passive adversary（被動對手）只觀察允許的資訊；active adversary�
 \centering
 \caption{基本 cryptographic primitives 的接口、典型用途與主要邊界。}
 \label{tab:primitive-map}
-\begin{tabularx}{\textwidth}{@{}p{.16\textwidth}p{.22\textwidth}YY@{}}
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{.16\textwidth}>{\raggedright\arraybackslash}p{.22\textwidth}YY@{}}
 \toprule
 Primitive & 誰持有什麼 & 典型用途 & 不會自動提供 \\
 \midrule
@@ -4302,8 +4336,8 @@ A2 提供 authenticity，A3 提供版本順序的 freshness，A1 防止跨裝置
 
 \section{練習：從壞事回推工具與狀態}
 \begin{exercise}
-\exlevel{概念確認}
-對「攻擊者把合法更新延遲兩小時才送達」分別寫出可能受影響的 confidentiality、integrity、freshness 與 availability。哪些性質一定失敗，哪些要看 application deadline 才能判定？
+\exlevel{概念分層}
+對「攻擊者把合法更新延遲兩小時才送達」依序寫出 asset、security goal、threat、adversary、vulnerability、attack、impact 與 risk assessment。再判斷 confidentiality、integrity、freshness 與 availability 中哪些性質一定失敗，哪些要看 application deadline 與裝置 state 才能判定。若資訊不足，不可自行補故事；請明列還需要哪些 assumptions。
 \end{exercise}
 
 \begin{exercise}
@@ -4328,9 +4362,10 @@ A2 提供 authenticity，A3 提供版本順序的 freshness，A1 防止跨裝置
 
 \section{費曼驗收：從攻擊事件重建 security specification}
 \begin{feynmancheck}
-不用「安全、加密、區塊鏈」三個字，向同學解釋感測器 rollback attack。先說出 asset 與不可接受事件，再畫 adversary interface 與 trace，最後從 trace 重建接受條件 A1--A4。每加入一個 cryptographic primitive，都必須指出它消除了哪條攻擊路徑，以及仍留下哪個 state 或 trust assumption。
+不用「安全、加密、區塊鏈」三個字，向同學解釋感測器 rollback attack。先用\cref{tab:security-concept-layers}的概念鏈分開 asset、goal、threat、adversary、vulnerability、attack、impact 與 risk，再畫 adversary interface 與 trace，最後從 trace 重建接受條件 A1--A4。每加入一個 cryptographic primitive，都必須指出它消除了哪條攻擊路徑，以及仍留下哪個 state 或 trust assumption。
 \end{feynmancheck}
 \begin{chapterrecap}
+\item Asset、goal、threat、adversary、vulnerability、attack、impact 與 risk 回答不同問題；不要把 actor、cause、action 與 consequence 混成同一層。
 \item Security goal 必須有受詞、壞事與 adversary model；primitive 名稱不能替代規格。
 \item Authenticity 不等於 freshness。合法舊訊息仍可構成 replay 或 rollback attack。
 \item Protocol security 同時依賴 message cryptography、local state transition 與 persistence semantics。
@@ -6203,6 +6238,8 @@ API & application programming interface，應用程式介面；在安全遊戲�
 Approximation algorithm & 近似演算法；在 polynomial time 內輸出 feasible solution，並對每個合法 instance 提供明示的 worst-case objective guarantee。 \\
 Approximation ratio & 近似比；把演算法 objective value 與 optimum 依 minimization／maximization 方向正規化後的比例，慣例上至少為 1。 \\
 Aspiration rule & Tabu search 的特赦規則；即使 move 仍 tabu，若能產生符合條件的新 best-so-far，仍允許通過。 \\
+Asset & 資產；系統準備保護、且損失或受損會造成影響的資料、狀態、能力或實體。Asset 必須和它應滿足的 security goal 分開描述。 \\
+Attack & 攻擊；adversary 利用 vulnerability、試圖觸發不可接受事件的具體行動序列。它不同於危險情境本身與事後 impact。 \\
 Attack surface & 攻擊面；不受信任輸入或對手可互動的全部入口，例如 API、parser、recovery mode 與金鑰載入流程。 \\
 Authenticity & 真實性／來源可驗證性；接收者能把訊息與聲稱的來源及內容連結，不蘊含 confidentiality 或 freshness。 \\
 Average-case analysis & 平均案例分析；輸入本身依指定分布抽樣後，對輸入與演算法亂數評估平均成本，與固定任意輸入的 randomized analysis 不同。 \\
@@ -6275,6 +6312,7 @@ Generalization & 泛化；由有限 observed instances 推論未觀察 target po
 Heuristic & 啟發式；利用問題結構快速產生或改善解的規則，本身不自動附帶最壞情況保證。 \\
 High probability & 高機率；失敗率隨輸入規模衰減的保證，精確衰減形式必須在定理中明示。 \\
 Hash function & 雜湊函數；把任意長輸入映射為固定長 digest。Collision resistance 等性質不等於訊息來源驗證。 \\
+Impact & 影響；不可接受事件發生後，對 asset、使用者或組織造成的後果。Risk assessment 還會把 impact 與攻擊可行性、暴露程度等情境因素一併考量。 \\
 IND-CPA & indistinguishability under chosen-plaintext attack，選擇明文攻擊下不可區分。 \\
 Indicator random variable & 指示隨機變數；事件成立時取 1，否則取 0，其期望等於事件機率。 \\
 Incumbent／best-so-far & 目前最佳可行解；搜尋尚未結束時已找到且可立即採用的解，其值可提供 primal bound。 \\
@@ -6347,6 +6385,7 @@ Replay／rollback & 重放／回滾；replay 重新送出先前有效訊息，ro
 Relaxation & 放寬；移除或削弱限制以擴大可行集合。其最優值可為原問題提供界，但放寬解未必能直接部署。 \\
 Residual & 殘差；把候選解代回限制後量得的違反程度，例如 $a_i^\top x-b_i$。應以原始工程單位檢查。 \\
 Right-hand side (RHS) & 限制式右側的 data，例如 $Ax\le b$ 中的 capacity vector $b$；改變 RHS 會移動 feasible-region boundary。 \\
+Risk & 風險；在指定決策情境下，綜合攻擊可行性、發生可能性、impact、exposure 與既有 controls 等因素的評估；不是「存在 vulnerability」的同義詞。 \\
 Resource augmentation & 資源增補分析；允許演算法使用比 benchmark solution 更多的容量、機器或時間，再明示比較其品質與資源倍率。 \\
 Rounding & 捨入；把分數解轉成離散可行解，並分析可行性與成本損失。 \\
 Robust optimization & 穩健最佳化；在決策前承認參數落於 uncertainty set，尋找對該集合具有明示 worst-case 或其他穩健保證的解；集合本身仍是建模主張。 \\
@@ -6354,6 +6393,7 @@ Safety／liveness & 安全性／活性；前者要求壞事不發生，後者要
 Sample complexity & 樣本複雜度；在明示 distribution、accuracy 與 confidence 要求下，達到指定推論或學習目標所需的樣本數。它不是資料集大小的別名。 \\
 Sanitizer & 動態檢測器；在執行時把 memory-safety violation、undefined behavior 等轉成較清楚的 failure signal。它是 oracle 的一部分，也有 blind spots。 \\
 Search landscape & 搜尋地景；由 search space $S$、neighborhood mapping $N$ 與 objective function $f$ 組成的三元組 $(S,N,f)$。只改 representation 或 neighborhood，就可能改變可達性、local optima 與 basins。 \\
+Security goal & 安全目標；明示某個 asset 必須維持的性質以及不可接受事件。Primitive 名稱不能代替 goal。 \\
 Security parameter & 安全參數；以 $\lambda$ 表示、控制 key size 與對手資源尺度的參數。漸近安全定義研究 $\lambda$ 增大時 advantage 如何衰減。 \\
 Seed corpus & 種子語料庫；fuzzer 用來選擇並突變的初始或持續更新輸入集合。 \\
 Sensitivity analysis & 敏感度分析；研究模型資料小幅變動時，最優值、最佳決策或 active set 如何改變。 \\
@@ -6383,6 +6423,7 @@ Tuning leakage & 調參洩漏；以測試 instances 反覆選超參數，使報�
 TSP & traveling salesperson problem，旅行推銷員問題。 \\
 TLS & Transport Layer Security，傳輸層安全性協定。 \\
 Threat model & 威脅模型；明示 adversary 能力、資源、控制位置與排除項。若沒有模型，「安全」無法成為可反駁主張。 \\
+Threat & 威脅；可能破壞 security goal 的情境或行為來源。它與主動決策的 adversary、可被利用的 vulnerability 及具體 attack sequence 分屬不同層次。 \\
 Trust boundary & 信任邊界；資料或控制跨越後必須重新驗證的界線，不一定等同機器或網路拓樸邊界。 \\
 Universal hashing & 通用雜湊；從函數族隨機選取 hash function，使任意固定不同鍵的碰撞機率受控。 \\
 Upper bound (UB) & 上界；未知值不可能超過的合法界。Maximization branch-and-bound 中，LP relaxation 為每個 subtree 提供 UB。 \\
@@ -6391,6 +6432,7 @@ Work & Total work；task graph 中所有 operation costs 的總和，因此 $p$ 
 Variance & 變異數 $\E[(X-\E X)^2]$；衡量 random variable 對 mean 的平方偏離，與 expectation 回答不同問題。 \\
 Vertex Cover & 頂點覆蓋；選取頂點，使每條邊至少有一個端點被選。 \\
 Verifier & 驗證器；接收 instance $x$ 與 candidate $y$，在指定時間界內檢查 $y$ 是否構成合法 certificate。 \\
+Vulnerability & 弱點；讓 threat 得以實現、並可被 attack 利用的系統條件，例如缺乏可靠 persistent state。它不等同 attack 或 risk。 \\
 \bottomrule
 \end{longtable}
 

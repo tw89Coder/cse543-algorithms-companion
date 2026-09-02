@@ -48,7 +48,7 @@ for A4 single-page reading and continuous tablet scrolling.
 ## Status
 
 Release candidate, dated September 2026. The compiled edition currently has
-172 pages.
+173 pages.
 
 ## License
 

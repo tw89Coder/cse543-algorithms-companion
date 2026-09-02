@@ -244,7 +244,7 @@ Simulated Annealing & SA／模擬退火 & 溫度控制較差移動的接受機�
 \section{Metaheuristics 解決哪一種搜尋困境？}
 許多通訊與資安設計問題都有兩個矛盾：候選解多到無法枚舉，而 objective function（目標函數）又可能不光滑、不可微或只能靠模擬評估。Metaheuristic（後設啟發式）不是特定問題的答案，而是一組控制搜尋的高階策略：如何產生鄰居、何時接受較差解、怎樣保留多樣性、何時重新開始。
 
-它的價值是以有限計算預算換取「通常不錯」的解；代價是往往沒有最優性或近似比保證。因此研究報告不能只寫「用了 Genetic Algorithm」，還必須交代 encoding、neighborhood、停止條件、baseline、seed 與多次試驗分布。
+它的目的是在有限計算預算下尋找高品質解；實際能否得到「通常不錯」的結果，必須相對 instance family、budget、seed distribution 與 evaluation protocol 由證據支持。由於方法往往沒有最優性或近似比保證，研究報告不能只寫「用了 Genetic Algorithm」，還必須交代 encoding、neighborhood、停止條件、baseline、seed 與多次試驗分布。
 
 \begin{definition}[Heuristic 與 metaheuristic]
 Heuristic（啟發式）是利用問題結構快速產生解的規則，例如「先處理干擾度最高的基地台」。Metaheuristic（後設啟發式）是可跨問題類型使用的高階搜尋框架，規定候選解如何產生、接受、記憶、重啟或組合；它可以包裹 problem-specific heuristic，也可以直接定義搜尋動力學。兩者都不因名稱本身而具有 optimality guarantee；保證必須另行證明。
@@ -1023,7 +1023,7 @@ DP 的狀態過少會失去必要歷史，過多則導致維度爆炸。設計�
 \section{為何需要問題家族的困難度語言}
 一次執行很慢，可能只是實作、硬體、資料結構或常數因子不佳；一次執行很快，也可能只是測到容易實例。複雜度理論比較的是一整個問題家族：令輸入編碼長度為 $n$，問是否存在一個演算法，對\emph{每個}長度為 $n$ 的實例都在 $n$ 的多項式時間內給出正確答案。這是 worst-case asymptotic statement（最壞情況漸近敘述），不是單一 benchmark 的秒數。
 
-這個分類會改變研究策略。若問題有多項式時間演算法，我們優先改進資料結構與常數；若最佳化問題已知 NP-hard，精確解法仍可使用，但要同時考慮 approximation、fixed-parameter method、特殊圖類、integer programming、heuristic 或 randomized search。NP-hardness 的作用是指出「哪一種普遍保證可能昂貴」，而不是宣判所有實例都無法處理。
+這個分類會改變研究策略。若問題有多項式時間演算法，研究焦點可能轉向更低的 polynomial exponent、資料結構、常數因子，或其他 computation、information 與 system dimensions；若最佳化問題已知 NP-hard，精確解法仍可使用，但要同時考慮 approximation、fixed-parameter method、特殊圖類、integer programming、heuristic 或 randomized search。NP-hardness 的作用是指出「哪一種普遍保證可能昂貴」，而不是宣判所有實例都無法處理。
 
 \begin{coreintuition}
 P／NP 問的不是「答案看起來複不複雜」，而是\emph{求出或判定答案所需的計算資源如何隨輸入長度增長}。實驗時間、平均表現與最壞情況分類回答不同問題，三者可以同時成立。
@@ -2488,7 +2488,7 @@ Integer model 的 LP relaxation 可能產生 fractional solution，不能直接�
 \end{chaptermastery}
 
 \section{近似的動機：可計算性與可證損失的交換}
-對 NP-hard optimization problem，approximation algorithm（近似演算法）在 polynomial time 內輸出\emph{可行解}，並對每個合法 instance 保證 objective value 與 optimum 的比例。這裡的 approximation 是「近似最優值」，不是用浮點數把限制算得不精確。\footnote{標準 approximation guarantee 通常仍要求精確滿足離散 constraints。同時界定 objective loss 與 constraint violation 稱為 bicriteria approximation；明示給演算法較多容量或時間則稱 resource augmentation。兩者都必須另外寫出保證。}這和「測試資料上通常不錯」不同：approximation ratio（近似比）是 worst-case guarantee（最壞情況保證）。
+本章主要討論 NP-hard optimization problems 上的 standard multiplicative approximation（標準乘法型近似）：演算法在 polynomial time 內輸出\emph{可行解}，並對每個合法 instance 提供相對於 $\OPT$ 的 worst-case ratio。其他 additive、bicriteria 或 resource-augmentation guarantees 必須另行明示。這裡的 approximation 是「近似最優值」，不是用浮點數把限制算得不精確。\footnote{標準 approximation guarantee 通常仍要求精確滿足離散 constraints。同時界定 objective loss 與 constraint violation 稱為 bicriteria approximation；明示給演算法較多容量或時間則稱 resource augmentation。兩者都必須另外寫出保證。}這和「測試資料上通常不錯」不同：approximation ratio（近似比）是 worst-case guarantee（最壞情況保證）。
 
 常見設計路線包括 greedy algorithm 搭配 charging argument、LP relaxation 搭配 rounding、primal--dual algorithm、local search，以及 randomized rounding。Charging 在此是把演算法成本分攤給元素或限制的 bookkeeping metaphor，\footnote{因此本章保留英文 charging；直譯成「充電」會誤導，中文採「記帳／分攤成本」解釋。}不是電學中的充電。Rounding 也不是把每個數字各自四捨五入，而是把 fractional solution 轉成 discrete feasible solution，並證明這個轉換損失多少。
 
@@ -3489,7 +3489,7 @@ Las Vegas 演算法可能具有 polynomial expected running time，仍存在極�
 先畫出固定 input $x$、random tape $r$ 與 output $A(x;r)$，避免把 randomized analysis 說成 average-case analysis。再重畫\cref{fig:same-mean-different-tail}，解釋 expectation 的限制；從 Markov 推出 Chebyshev，並指出 Chernoff 推導在哪一行需要 independence。最後用 MAX-CUT 同時示範 indicator expectation、pairwise independence 與\cref{fig:conditional-expectation-step}的 derandomization。
 \end{feynmancheck}
 \begin{chapterrecap}
-\item Average-case analysis 對 input distribution 取平均；randomized guarantee 則先固定任意 input，再對 algorithmic random tape 取機率，兩者量詞不可交換。
+\item Average-case analysis 對 input distribution 取平均；本章的 worst-case randomized guarantee 則先固定任意 input，再對 algorithmic random tape 取機率，兩者量詞不可交換。
 \item Expectation 描述重心，concentration 描述質量靠近重心，high probability 還要求 failure rate 隨 input size 衰減；三者不是同一主張的不同語氣。
 \item Indicator method 拆開總成本；Markov、Chebyshev、Chernoff 使用遞增資訊。Independence 不為期望線性所需，卻是標準 MGF factorization 的關鍵收據。
 \item Monte Carlo 隨機在答案、Las Vegas 隨機在時間；amplification 與 conditional expectation 分別控制錯誤、移除隨機選擇。
@@ -6295,8 +6295,8 @@ Data-generating process & 產生 observations 或 workloads 的機制；可能�
 Differential fuzzing & 差異模糊測試；把同一輸入交給多個 implementations 或 versions，以不一致作為可疑訊號；仍需外部規格判斷哪一方錯。 \\
 Distribution shift & 分布移轉；evaluation、target 或 deployment instances 來自不同 distributions，使原本的 empirical estimand 或 ranking 未必仍適用。 \\
 Digital signature & 數位簽章；signer 用 secret key 產生 signature，任何持有 public key 者可驗證。它提供的 authenticity 不會自動阻止合法舊訊息 replay。 \\
-DP & dynamic programming，動態規劃；保存重疊子問題的答案並組合成原問題解。 \\
-Dynamic algorithm & 動態演算法；input 持續更新時維護答案，常分開分析 update time、query time 與 adaptation delay，而非每次只從頭重算。 \\
+DP & dynamic programming，動態規劃；不是「出現子問題就套用 DP」。必須先定義 sufficient state，使每個 state 保存完成後續決策所需的資訊，並證明 optimal substructure；相同 state 重複出現時，memoization 或 tabulation 才能避免重複計算。 \\
+Dynamic algorithm & 動態演算法；input 隨一連串 insert、delete 或 change updates 改變時維護答案，常分開分析 update time、query time 與 adaptation delay，而非每次只從頭重算。 \\
 Evidence chain & 證據鏈；從研究主張依序追查 model validity、演算法正確性、解品質證據、實驗協定與可重現報告。 \\
 Error amplification & 錯誤率放大／成功率放大；以獨立重複和適合的 aggregation rule 降低 randomized algorithm 的 failure probability。 \\
 Equivocation & 矛盾陳述；同一 process 在同一 protocol position 對不同接收者提出不相容訊息。Signature 可留下歸責證據，但不會阻止已被攻陷的 signer 說謊。 \\

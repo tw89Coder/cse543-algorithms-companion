@@ -119,7 +119,7 @@
 本書為依據西元 2026 年秋季學期 CSE543 公開課程大綱整理之非官方課程伴讀與自學教材；內容、詮釋與可能錯誤由編者負責，不代表國立中山大學、資訊工程學系或授課教師之正式立場。
 
 \paragraph{著作權與授權。}
-Copyright \textcopyright\ 2026 YHL。除另有註明外，本教材的原創文字、圖表、題目與編排採\href{https://creativecommons.org/licenses/by-nc-sa/4.0/}{Creative Commons 姓名標示－非商業性－相同方式分享 4.0 國際授權條款（CC BY-NC-SA 4.0）}授權。讀者可以分享與改作，但必須適當署名、附上授權連結、標示是否修改，且不得作商業用途；公開衍生版本時，必須採相同授權。引用或另行標示的第三方材料不因此改變其原有權利狀態。課程名稱、課號與公開課程大綱資訊僅用於課程辨識及內容對應，不表示國立中山大學、資訊工程學系或授課教師對本教材背書或認可。Repository 中獨立的排版程式與 build helpers 若另有授權檔標示，則依該檔案授權。
+Copyright \textcopyright\ 2026 YHL。除另有註明外，本教材的原創文字、圖表、題目與編排採用 \href{https://creativecommons.org/licenses/by-nc-sa/4.0/}{Creative Commons 姓名標示－非商業性－相同方式分享 4.0 國際授權條款（CC BY-NC-SA 4.0）}授權。讀者可以分享與改作，但必須適當署名、附上授權連結、標示是否修改，且不得作商業用途；公開衍生版本時，必須採相同授權。引用或另行標示的第三方材料不因此改變其原有權利狀態。課程名稱、課號與公開課程大綱資訊僅用於課程辨識及內容對應，不表示國立中山大學、資訊工程學系或授課教師對本教材背書或認可。Repository 中獨立的排版程式與 build helpers 若另有授權檔標示，則依該檔案授權。
 
 \begin{quote}
 \centering
@@ -132,7 +132,7 @@ See the assumption. Break the assumption. Find the question.
 全書用三層檢查每個概念：形（form）是記號、公式與程序；意（idea）是讀者能在腦中重演的機制；本質（essence）是支撐結論的假設、invariant 或 certificate，以及假設破裂時證明首先斷在哪裡。公式應壓縮讀者已擁有的直覺，不應取代尚未建立的直覺。
 
 \paragraph{與課綱的關係。}
-課綱列出的五項核心是本書正文的唯一主軸。Algorithms Review 特別補齊 Cormen、Leiserson、Rivest、Stein 合著教科書（以下簡稱 CLRS）型先備知識：漸近複雜度、圖、貪婪、動態規劃、確定型多項式時間 P、非確定型多項式時間 NP、NP-hard、NP-complete 與多項式時間歸約。證明安全、分散式安全與 fuzzing 等延伸內容全部集中在附錄，並明示其非課綱核心地位。
+課綱列出的五項核心構成本書正文的內容骨架；第 8 章只整合前述工具形成研究證據鏈，不另引入一門新的課綱主題。Algorithms Review 特別補齊 Cormen、Leiserson、Rivest、Stein 合著教科書（以下簡稱 CLRS）型先備知識：漸近複雜度、圖、貪婪、動態規劃、確定型多項式時間 P、非確定型多項式時間 NP、NP-hard、NP-complete 與多項式時間歸約。證明安全、分散式安全與 fuzzing 等延伸內容全部集中在附錄，並明示其非課綱核心地位。
 
 \paragraph{建議讀法。}
 第一次讀只追「問題、模型、保證」三條線；第二次補證明；第三次關書完成小題。章末的費曼驗收不是背誦清單，而是要求用自己的例子、反例和一張圖，把概念教給一位熟悉資料結構但沒修過本課的同學。
@@ -247,14 +247,14 @@ Simulated Annealing & SA／模擬退火 & 溫度控制較差移動的接受機�
 它的價值是以有限計算預算換取「通常不錯」的解；代價是往往沒有最優性或近似比保證。因此研究報告不能只寫「用了 Genetic Algorithm」，還必須交代 encoding、neighborhood、停止條件、baseline、seed 與多次試驗分布。
 
 \begin{definition}[Heuristic 與 metaheuristic]
-Heuristic（啟發式）是利用問題結構快速產生解的規則，例如「先處理干擾度最高的基地台」。Metaheuristic（後設啟發式）是控制一個或多個 heuristics 的通用搜尋框架，例如決定何時接受較差移動、記住最近禁用的動作、重啟或維持 population。兩者都不因名稱本身而具有 optimality guarantee；保證必須另行證明。
+Heuristic（啟發式）是利用問題結構快速產生解的規則，例如「先處理干擾度最高的基地台」。Metaheuristic（後設啟發式）是可跨問題類型使用的高階搜尋框架，規定候選解如何產生、接受、記憶、重啟或組合；它可以包裹 problem-specific heuristic，也可以直接定義搜尋動力學。兩者都不因名稱本身而具有 optimality guarantee；保證必須另行證明。
 \end{definition}
 
 \begin{definition}[搜尋問題的六個接口]
 一個可重現的搜尋器至少要明示：（1）solution representation（解如何編碼）；（2）feasibility（哪些編碼合法）；（3）objective $f$（如何比較）；（4）neighborhood 或 proposal $Q$（能提出哪些下一步）；（5）acceptance 與 memory（哪些步能通過、歷史如何影響）；（6）budget 與 output rule（何時停止、回傳 final state 還是 best-so-far）。只給演算法家族名稱，尚未定義一個可執行方法。
 \end{definition}
 
-這六個接口就是本章的故事骨架。Local search 固定只接受改善；Simulated Annealing 改 acceptance；tabu search 把短期記憶加入 state；restart 改初始化與時間分配；population-based search 同時維持多個候選。它們不是五個互不相干的名詞，而是在修改同一台搜尋機器的不同零件。
+這六個接口就是本章的故事骨架。本章的 basic local search 固定只接受嚴格改善；更廣義的 local-search frameworks 也可能允許 sideways moves 或採用其他 acceptance rules。Simulated Annealing 改 acceptance；tabu search 把短期記憶加入 state；restart 改初始化與時間分配；population-based search 同時維持多個候選。它們不是五個互不相干的名詞，而是在修改同一台搜尋機器的不同零件。
 
 \section{基地台頻道配置：從 interference graph 到 objective}
 令每個基地台選一個頻道，相鄰基地台若同頻便產生干擾。把基地台視為圖 $G=(V,E)$ 的頂點集合 $V$ 與干擾邊集合 $E$。令 $x_u$ 為基地台 $u$ 選擇的頻道，$w_{uv}\ge0$ 為邊 $(u,v)$ 的干擾權重，$A_u$ 為 $u$ 的允許頻道集合，$\lambda\ge0$ 為違反允許集合的懲罰係數。以 $\mathbf 1[P]$ 表示命題 $P$ 成立時為 1、否則為 0 的指示函數；配置 $x=(x_u)_{u\in V}$ 的成本可寫成
@@ -3508,7 +3508,7 @@ Las Vegas 演算法可能具有 polynomial expected running time，仍存在極�
 \end{chaptermastery}
 
 \section{一個數字不等於一項主張：為何需要證據鏈}
-研究專題很少乾淨地只屬於一章。常見流程是：用整數規劃定義問題，用 LP 或對偶產生界，用 rounding 得可證解，再用局部搜尋改善實務品質，最後用隨機化評估穩健性。關鍵不是方法越多越好，而是每個方法必須填補一個明確的 evidence gap（證據缺口）。
+研究專題很少乾淨地只屬於一章。常見流程是：用整數規劃定義問題，用 LP 或對偶產生界，用 rounding 得可證解，再用局部搜尋改善實務品質，最後以預先定義的多個 random seeds 重複實驗，評估結果的 empirical stability（經驗穩定性）。此處的 seeds 描述演算法內部 randomness 的實驗重複，不等於假設 input 來自某個隨機分布。關鍵不是方法越多越好，而是每個方法必須填補一個明確的 evidence gap（證據缺口）。
 
 一個完整主張至少要回答五個不同問題：模型是否忠實表達工程需求？演算法是否總會輸出可行解？需要多少計算資源？輸出離模型最優值多遠？在指定資料、平台與亂數下是否穩定？若只回答最後一題，便只能說「這些實驗中觀察到」；若只有近似定理，則仍不能保證模型捕捉了部署現場真正重視的風險。
 
@@ -3648,7 +3648,7 @@ $Z_A(I;s,\tau)=f_I(S_A(I;s,\tau))$ 表示一次 run 的目標值。後文省略�
 \section{Running time 不是全部：研究主張的八維座標}
 \label{sec:algorithmic-dimensions}
 
-前一節把證據分層；本節換一個方向追問同一演算法可被哪些正交問題檢查。經典敘述常默認：完整 input 已在一台抽象機器的記憶體裡、世界在 computation 期間不變、遠端資訊可立即取得。這些不是錯誤，而是 computation 與 information model；研究的危險在於使用了假設，卻沒有在 claim 中說出來。
+前一節把證據分層；本節換一個方向，追問同一演算法可從哪些不同但可能交互作用的研究面向接受檢查。經典敘述常默認：完整 input 已在一台抽象機器的記憶體裡、世界在 computation 期間不變、遠端資訊可立即取得。這些不是錯誤，而是 computation 與 information model；研究的危險在於使用了假設，卻沒有在 claim 中說出來。
 
 \cref{tab:algorithmic-dimensions}不是要把整個 algorithms universe 塞進八列，而是一張閱讀陌生 paper 時的 radar。某篇工作可以只處理其中兩三維；沒有處理的維度不代表方法錯誤，但會限制結論能走多遠。
 
@@ -3680,9 +3680,9 @@ Structural dimension 特別提醒：$T(n)$ 不是描述 hardness 的唯一方式
 
 Temporal dimension 也不等同 online。Online algorithm 面對尚未到達的 future；dynamic algorithm 可能曾完整知道 $G_0$，但世界後來變成 $G_1,G_2,\ldots$。前者問在 prefix information 下如何決策，後者還會問一次 update 後多久恢復可用答案。兩者與 information、communication 維度的共同主線在附錄~\ref{app:without-omniscience}展開。
 
-\subsection{Feedback／endogeneity：演算法不是世界的旁觀者}
+\subsection{Feedback and endogeneity：decision 如何反過來改變資料}
 
-「看見執行結果」只是 outcome observation；「依結果改下一步」是 adaptive update；更深一層的 Feedback／endogeneity（回饋／內生性）是：decision 本身改變了下一輪 state、observation、workload 或 adversary strategy。這不只是世界隨時間改變，而是演算法成為變化的原因之一。
+「看見執行結果」只是 outcome observation；「依結果改下一步」是 adaptive update。Feedback（回饋）表示結果回到後續決策；endogeneity（內生性）更進一步表示 decision 本身改變了下一輪 state、observation、workload 或 adversary strategy。兩者相關但不是同義詞：前者描述資訊迴路，後者指出演算法已成為資料生成過程的一部分。
 
 以 routing 為例。若 Route A 在沒有流量時 latency 是 4，Route B 是 6，greedy controller 會把流量送往 A；但若 A 承載全部流量後 latency 升成 8，下一輪又會改送 B。原本量到的 edge weight 不是固定 parameter；decision 改變了下一次要最佳化的 instance。附錄~\ref{app:without-omniscience}會把這個兩狀態循環完整畫出。
 
@@ -3953,7 +3953,7 @@ $D_s=M(I,s)-H(I)$      & 2   & 9   & $-15$ & 15 & 6 \\
 \item Feasible、non-worsening post-processing 能保留近似保證；回傳 final state 則未必可以。
 \item 先定義 empirical estimand，再分層處理 instances、seeds、budget、timeout 與 tuning leakage。
 \item Reproducibility 只保證同一 protocol 可重做；generalization 還要連接 observed sample、target population 與 deployment distribution。
-\item Feedback／endogeneity 使 decision 成為下一輪資料的原因之一；resource budget 也應計入昂貴 query／sample access。
+\item Feedback 讓結果回到後續決策；endogeneity 更進一步使 decision 成為下一輪資料的原因之一。Resource budget 也應計入昂貴 query／sample access。
 \end{chapterrecap}
 
 \appendix
@@ -4133,7 +4133,7 @@ Partition 的數值大小與難度緊密相關，存在偽多項式 DP；3-Parti
 \[
  \operatorname{Verify}_{pk}(12\mathbin\Vert P_{12},\sigma_{12})=1,
 \]
-那麼驗證會正確地回答「這份內容確由合法金鑰簽署」，卻沒有回答「它是否比目前狀態新」。Authenticity（來源與內容真實性）仍成立，freshness（新鮮性）卻失敗；系統因而遭受 rollback attack（回滾攻擊）。
+那麼驗證會正確地回答「這份訊息可驗證為由合法 signing key 產生」，卻沒有回答「它是否比目前狀態新」或「現在是否仍應接受」。Replay 本身沒有破壞這份舊訊息的 authenticity（來源真確性／可驗證來源），卻破壞了 freshness（新鮮性）；系統因而遭受 rollback attack（回滾攻擊）。Digital signature 也不保證 payload 對現實世界的陳述為真。
 
 這個例子建立全附錄最重要的習慣：不要先問「用了哪個演算法」，先寫出 unacceptable event（不可接受事件）。本例的壞事不是「簽章被偽造」，而是「誠實裝置接受低於已確認版本的軟體」。兩句話需要不同的 security property，也會導出不同的證明義務。
 
@@ -4164,6 +4164,7 @@ Vulnerability（弱點）是使威脅得以實現的系統條件；attack（攻�
   \text{Attack}&\longrightarrow\text{Impact}\longrightarrow\text{Risk assessment}.
  \end{aligned}
 \]
+這條鏈描述 adversarial threat（對抗性威脅）。Accident、misconfiguration 或 natural failure 也可能破壞 security goal，卻不必存在主動 adversary，事件也不一定稱為 attack。
 第一條先定義「保護什麼」；第二條才追蹤壞事如何成為可能、如何發生，以及為何值得處理。這不是聲稱所有 security frameworks 都必須採用同一 taxonomy，而是避免把 actor、cause、mechanism、event 與 consequence 混為一談。
 
 \begin{table}[htbp]
@@ -5341,7 +5342,7 @@ Coverage 高不等於 bug 多，更不等於安全。Fuzzer 沒找到漏洞，�
 演算法的保證永遠相對於它知道什麼、何時知道、能保存與傳送多少，以及世界在計算期間是否改變。先問「哪份資訊被當成免費 oracle（查詢介面）？」常比先問「要用哪個演算法？」更接近研究問題。
 \end{coreintuition}
 
-\section{五種「不知道」破壞不同假設}
+\section{有限資訊的五種來源破壞不同假設}
 
 有限資訊不是單一現象。\cref{tab:five-unknowns}將五種常見缺口並排；每一列拿掉的 assumption 不同，因此適用的 benchmark 與證明義務也不同。
 
@@ -5350,7 +5351,7 @@ Coverage 高不等於 bug 多，更不等於安全。Fuzzer 沒找到漏洞，�
 \caption{從完整資訊模型移除不同假設後形成的研究入口。}
 \begin{tabularx}{\textwidth}{@{}p{.19\textwidth}p{.27\textwidth}YY@{}}
 \toprule
-缺少的資訊 & 被移除的假設 & 常見研究語言 & 第一個該問的問題 \\
+有限資訊來源 & 被移除的假設 & 常見研究語言 & 第一個該問的問題 \\
 \midrule
 Future unknown & 一開始知道完整到達序列 & online algorithm & 決策能否撤回？OPT 是否看得到未來？ \\
 Global unknown & 每個節點知道全域 state & local／distributed & 哪些訊息必須跨哪些邊？ \\
@@ -5491,7 +5492,9 @@ Online 強調未來尚未到達；dynamic setting（動態情境）強調原本�
 
 Stale information 是 observation 與 dynamics 的交會：$\widehat w_e(t-\Delta_e)$ 在量測時可能完全正確，卻因環境已改變而不代表 $w_e(t)$。減少 measurement noise 不會讓 $\Delta_e$ 消失；提高 update frequency 又會增加 messages、energy 或 contention。下一章會把這個交換帶入真正跨 workers 運行的 heuristic search。
 
-\section{Feedback／endogeneity：decision 會改變下一個 instance}
+\section{Feedback and endogeneity：decision 如何反過來改變資料}
+
+Feedback 表示先前結果進入後續決策；當 decision 又改變下一輪 state、observation 或 workload 的生成方式時，才進一步形成 endogeneity。以下例子同時具有這兩層。
 
 現在把\cref{eq:closed-loop-model}放回一個可手算的 routing loop。兩條 route 共承擔一單位流量；令 $x_t\in\{0,1\}$ 表示第 $t$ 輪是否把全部流量送往 Route A。Route A 的 latency 會隨自身負載增加，Route B 在此簡化為固定值：
 \begin{equation}
@@ -5589,7 +5592,7 @@ Capacity provisioning 中，考慮先租 $k-1$ 天、第 $k$ 天仍有需求便�
 \item Reservoir sampling 用 uniform replacement 與歸納不變量，以常數 space 維持 uniform sample。
 \item Robust decision 的保證相對 uncertainty set；集合本身仍需證據，過大也會造成保守成本。
 \item Dynamic analysis 問 update、query 與 adaptation，而不只從頭重算的 sequential time。
-\item Feedback／endogeneity 問 decision 是否改變下一個 state 或 data distribution；它不等同於 noise、staleness 或一般 dynamic change。
+\item Feedback 表示結果回到後續決策；endogeneity 問 decision 是否進一步改變下一個 state 或 data distribution。兩者都不等同於 noise、staleness 或一般 dynamic change。
 \end{chapterrecap}
 
 \chapter[Parallel and Distributed Heuristic Search：跨 Workers 的搜尋]
@@ -5809,7 +5812,7 @@ Synchronous migration 在固定輪次設 barrier，容易推理卻會等待 stra
 
 Sequential update 可讓 A 先換到 2、B 觀察新狀態後留在 1；random backoff 可能打破 symmetry；asynchronous execution 可避免 global barrier。但「可能」不是 convergence theorem。Random timers 是否獨立？Message delay 是否有界？Scheduler 是否最終啟動每個節點？節點讀到的 state 是否來自同一版本？少一項都可能讓直覺失效。
 
-\section{Termination、convergence 與 quality 是五筆不同的證明債}
+\section{Termination、convergence、quality、rate 與 fairness：五筆不同的證明債}
 
 Distributed process 的 trajectory 是 joint states
 \[
@@ -5842,16 +5845,16 @@ Local improvement $\not\Rightarrow$ global convergence；global convergence $\no
 
 \section{Communication 與 scalability：資訊搬動也是成本}
 
-對跨 workers 的演算法，只報 arithmetic work 會漏掉資訊的位置。令 $M$ 表示 peak memory、$C$ 表示 transmitted bits 或 bytes 的 communication volume、$R$ 表示依序相依的 communication rounds。實際 wall-clock 可用下列 accounting identity 的精神拆解：
+對跨 workers 的演算法，只報 arithmetic work 會漏掉資訊的位置。令 $M$ 表示 peak memory、$C$ 表示 transmitted bits 或 bytes 的 communication volume、$R$ 表示依序相依的 communication rounds。實際 wall-clock 可用下列 cost decomposition 的概念理解：
 \[
  T_p
- =T_{\mathrm{useful}}
+ \approx T_{\mathrm{useful}}
  +T_{\mathrm{communication}}
  +T_{\mathrm{synchronization}}
  +T_{\mathrm{imbalance}}
  +T_{\mathrm{runtime\ overhead}}.
 \]
-各項可能重疊，因此實際 profiler convention 必須說明；這不是聲稱所有系統都能被唯一、精確地加總成五個可觀測數字。
+這不是普遍成立的數學恆等式。實際執行中 computation、communication 與 synchronization 可能重疊；profiler 因此必須明示時間如何歸類，而不能把彼此重疊的量直接當成互斥項精確加總。
 
 \begin{table}[htbp]
 \centering
@@ -6300,7 +6303,7 @@ Equivocation & 矛盾陳述；同一 process 在同一 protocol position 對不�
 EUF-CMA & existential unforgeability under chosen-message attack，選擇訊息攻擊下的存在性不可偽造；對手可查詢簽章 oracle，但須輸出一份對未查詢訊息有效的偽造。 \\
 Effect size & 效果量；兩方法差異的實際幅度，例如 paired median difference。它回答「差多少」，與只回答資料是否反對虛無假設的 $p$-value 不同。 \\
 Empirical estimand & 實證估計目標；實驗準備描述或估計的明確量，例如固定 instance 與 budget 下，跨 random seeds 的 median objective value。 \\
-Feedback／endogeneity & Feedback 表示結果回到後續決策；endogeneity 更進一步表示 decision 本身改變下一輪 state、observation、workload 或對手行為。 \\
+Feedback and endogeneity & Feedback 表示結果回到後續決策；endogeneity 更進一步表示 decision 本身改變下一輪 state、observation、workload 或對手行為。兩者相關但不是同義詞。 \\
 Expectation & 期望值；random variable 對其機率分布的加權平均，描述分布重心而非單次執行上限。 \\
 Evaluation protocol & 評估協定；在觀察結果前固定 instances、platform、budget、seeds、metrics、timeouts 與 aggregation rules 的比較規格。 \\
 Exogenous environment & 外生環境；environment transition 不依賴演算法 action。世界仍可隨時間變動，但變化不是 deployed decision 所造成。 \\
@@ -6358,7 +6361,7 @@ Nash equilibrium & 納許均衡；固定其他 players 的 strategies 時，沒�
 Negligible function & 可忽略函數；對每個常數 $c>0$，當 security parameter 足夠大時都小於 $\lambda^{-c}$ 的函數。 \\
 Nonce & number used once，一次性數值；其要求可能是唯一、不可預測或兩者兼具，須由使用的 primitive 明示。Nonce 不必然是祕密。 \\
 NP-complete & 同時屬於 NP 且為 NP-hard 的決定問題。 \\
-NP-hard & 至少和所有 NP 問題一樣難；不要求問題本身屬於 NP。 \\
+NP-hard & 在指定的 polynomial-time reduction 下，每個 NP 問題都可歸約到它；問題本身不必屬於 NP。判讀時必須同時檢查 reduction 的方向。 \\
 Optimality gap & 最優差距；可行解值與已知界之間的相對或絕對差距。 \\
 Optimality certificate & 最優性的可驗證證據；例如 primal feasible value 與 dual bound 相等，或 branch-and-bound 已關閉所有仍可能改善 incumbent 的節點。 \\
 Oracle & 受規則限制的查詢介面；例如安全遊戲允許 adversary 呼叫的 encryption、signing 或 decryption interface。使用 oracle 是在精確規定能力，不表示現實中存在無限制的答案來源。 \\
